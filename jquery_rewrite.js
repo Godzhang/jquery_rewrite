@@ -122,7 +122,23 @@ jQuery.extend = jQuery.fn.extend = function(){
 jQuery.extend({
 	//合并数组，json对象
 	merge: function(first, second){
+		var l = second.length,
+			i = first.length,
+			j = 0;
 
+		if(typeof l === 'number'){
+			for(;j<l;j++){
+				first[i++] = second[j];
+			}
+		}else{
+			while (second[j] !== undefined){
+				first[i++] = second[j++];
+			}
+		}
+
+		first.length = i;//这个地方是关键,手动改变长度
+
+		return first;//返回的是一个新数组,也是第一个数组
 	},
 	isFunction: function(obj){
 		return jQuery.type(obj) === "function";
@@ -146,7 +162,23 @@ jQuery.extend({
 			isArray = isArraylike(obj);//判断是否是数组,类数组和this,this是带下标的对象
 
 		if(args){
-			
+			if(isArray){
+				for( ; i<length;i++){
+					value = callback.apply(obj[i],args);
+
+					if(value === false){
+						break;
+					}
+				}
+			}else{
+				for( i in obj){
+					value = callback.apply(obj[i],args);
+
+					if(value === false){
+						break;
+					}
+				}
+			}
 		}else{
 			if(isArray){
 				for( ; i<length;i++){
@@ -166,17 +198,6 @@ jQuery.extend({
 				}
 			}
 		}
-
-
-
-
-
-
-
-
-
-
-
 	},
 	isWindow: function(obj){
 		return obj != null && obj === obj.window;
