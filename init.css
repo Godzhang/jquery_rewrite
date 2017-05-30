@@ -1,0 +1,192 @@
+﻿/*reset*/
+body, h1, h2, h3, h4, h5, h6, dl, dt, dd, ul, ol, li, th, td, p, form, input, button, textarea, hr { margin:0; padding:0; }
+ol,ul,li {list-style:none}
+img {border:none;}
+em {font-style:normal;}
+img { border: none; vertical-align: top; }
+body,button,input,select,textarea { font: 12px/1.6 "\5FAE\8F6F\96C5\9ED1",tahoma,arial ; color:#000;}
+input,select,textarea{font-size:100%;}
+table{border-collapse:collapse;border-spacing:0;}
+th{text-align:inherit;}
+.clear{ clear:both;}
+.clearfix:after { visibility: hidden; display: block; font-size: 0; content: " "; clear: both;height: 0; }
+.clearfix { *zoom: 1;}
+a {color:#000;text-decoration:none; outline: none;}
+a:hover {color:#996600;text-decoration:none;}
+/*global*/
+.f13{ font-size:13px;}
+.f12{ font-size:12px;}
+.f14{ font-size:14px;}
+.f15{ font-size:15px;}
+.f16{ font-size:16px;}
+.f18{ font-size:18px;}
+.f20{ font-size:20px;}
+.mar_t2{ margin-top:2px;}
+.mar_t5{ margin-top:5px;}
+.mar_t10{ margin-top:10px;}
+.mar_t15{ margin-top:15px;}
+.mar_t20{ margin-top:20px;}
+.pad_b5{ padding-bottom:5px;}
+.pad_b10{ padding-bottom:10px;}
+.pad_b20{ padding-bottom:20px;}
+.left{ float:left;}
+.right{ float:right;}
+.f700{ font-weight:700;}
+.f100{ font-weight:100;}
+.fyahei{ font-family:"\5FAE\8F6F\96C5\9ED1";}
+.ta-l,.ta_l{ text-align:left;}
+.ta-c,.ta_c{ text-align:center;}
+.ta-r,.ta_r{ text-align:right;}
+.pos-rel,.pos_rel{ position:relative;}
+.pos-abs,.pos_abs{ position:absolute;}
+.indent{ text-indent:2em;}
+.cursor{ cursor:pointer;}
+.wrapper { width: 1000px; margin-left:auto; margin-right: auto; }
+/*header*/
+.header .wrapper { width: 1000px; margin: auto; }
+.topbar { height: 40px; background-color: #f8f8f8; border-bottom: 1px solid #eeeeee; }
+.top-bar-nav { float: left; }
+.top-homeback,.top-xbiaoapp,.top-wechat,.top-weibo { display: inline-block;  height: 40px; line-height: 40px; background-image: url(../../images/pc/pub/topbar.png); background-repeat: no-repeat; font-size: 14px; margin-right: 22px; }
+.top-homeback { background-position: 0 12px;padding-left: 23px; }
+.top-xbiaoapp { background-position: 0 -22px;padding-left: 18px; }
+.top-wechat { position: relative; background-position: 0 -60px;padding-left: 18px; }
+.top-weibo { background-position: 60px -93px; padding-right: 44px; }
+.top-wechat i { display: none; position: absolute; left: 0; top: 40px; border-width:0 1px 1px 1px; border-style:solid;border-color:#2d190f; padding: 10px; background-color: #fff;}
+.top-wechat:hover i { display: block; }
+.top-search { float: right; position: relative; width: 278px; height: 28px; background-color: #fff; border: 1px solid #d2d2d2 ;margin-top: 6px; z-index: 2;}
+.top-consearch { width: 239px; }
+.top-consearch span{position: absolute; left: 10px; top: 0; height: 28px; line-height: 28px; color: #a0a0a0; cursor: text; }
+.top-consearch input { border: none; width: 220px; padding-left: 10px; height: 28px; line-height: 28px; outline: none; background: none; }
+.top-butsearch { width: 37px; height: 24px; position: absolute; right: 1px; top: 2px; border-left: 1px solid #d2d2d2;}
+.top-butsearch input{appearance:none; border: 0; border-radius: 0; background: url(../../images/pc/pub/topbar.png) 7px -139px; width: 37px; height: 24px; cursor: pointer; outline: none; }
+.top-datasearch{ position:absolute; left:-1px; top:28px; border:1px solid #ccc; background:#fff; display:none; min-width:278px;}
+.top-datasearch li{ padding:0 10px; font-size: 14px; line-height: 2em; white-space: nowrap; cursor: default;}
+.top-datasearch li.hover{ background:#eae9e9;}
+.top-datasearch span{ background:#f5f3f4; color:#ccc; display:block; position:relative; padding:6px 98px 6px 7px; line-height:normal; font-size:14px;}
+.top-datasearch span i{ background:url(../../images/pc/pub/del.png) no-repeat; position:absolute; width:13px; height:12px; right:7px; top:8px; cursor:pointer;}
+
+
+.top-loginbox { float: right; height: 40px; position: relative; z-index: 2;}
+.top-loginbox i {font-style: normal;}
+.top-login { position: relative; height: 40px; line-height: 40px; display: inline-block; padding-right: 15px; padding-left: 45px; cursor: default; }
+.top-login,.top-reg { font-size:14px; }
+.top-loginup { display: none; }
+.top-login:hover .top-loginup{ display: inline-block; }
+.top-login:hover .top-logindown{ display: none; }
+.top-login:hover span a{color: #996600;}
+.top-login-thirdbox { display: none; position: absolute; top: 40px; left: 0; width: 121px; height: 134px; background:url(http://www.xbiao.com/images/opacity.gif);  }
+.top-login:hover .top-login-thirdbox { display: block; }
+.top-login-third {border:1px solid #c9c9c9; z-index: 2;height: 134px; overflow: hidden;margin-top: 8px; background-color: #fff; }
+.top-login-third li { height: 44px; border-bottom: 1px dotted #c9c9c9; background-image: url(../../images/pc/pub/ico_login.png); background-repeat: no-repeat; background-color: #fff; }
+.top-login-third li a{ font-size: 14px;text-align: center; width: 100%; height: 44px; line-height: 44px; display: block; text-indent: 20px; }
+.top-login-qq { background-position: 15px -2px; }
+.top-login-weibo { background-position: 15px -49px; }
+.top-login-wechat { background-position: 15px -93px; }
+.top-login-tip{ position: absolute; top: 1px; left:51px; width: 17px;height: 8px;background: url(../../images/pc/pub/topbar.png) -21px -184px; z-index: 3; }
+
+.top-user { position: relative; display: inline-block; height: 40px;padding-left: 20px; vertical-align: top;}
+.top-user span { display: inline-block; height: 16px; vertical-align: top; margin-top: 12px; line-height: 16px; color: #979797; background:url(../../images/pc/pub/topbar.png) right -195px no-repeat; padding-right: 20px; width: auto!important; max-width: 100px;  width: 80px;overflow: hidden; text-overflow:ellipsis; white-space: nowrap; *white-space: normal; }
+.top-user:hover span {background-position: right -215px;}
+.top-avatar { display: inline-block; width: 28px;height: 28px; border-radius: 50%; margin-top: 7px;}
+.top-msg-mark { display: none; position: absolute; left:65px;width: 6px;height: 5px;background: url(../../images/pc/pub/topbar.png) -1px -182px; }
+.top-user-inforbox,.top-user-msgbox { display: none; position: absolute; top: 40px;  background:url(http://www.xbiao.com/images/opacity.gif);  }
+.top-user-inforbox {width: 80px;right: 0;}
+.top-user-msgbox {width: 100px; left: 20px;}
+.top-user:hover .top-user-inforbox,.top-user:hover .top-user-msgbox { display: block; }
+.top-user-infor,.top-user-msg { border: 1px solid #e5e5e5; margin-top: 8px; background-color: #fff; overflow: hidden; }
+.top-user-infor li,.top-user-msg li{ height: 30px;  border-top: 1px solid #e5e5e5;margin-top: -1px; }
+.top-user-infor li a,.top-user-msg li a { display: block;border: 1px solid #fff;  text-indent: 13px; height: 27px;line-height: 27px;  }
+.top-user-msg li a {text-indent: 6px; position: relative;}
+.top-user-infor li a:hover ,.top-user-msg li a:hover { background-color: #f9f9f9; color: #996600; }
+.top-user-msg li i{ position: absolute; right: 3px; top: 6px; width: 22px; height: 14px; line-height: 14px; border-radius: 2px; background-color: #e5e5e5; color: #979797; text-align: right; padding-right: 3px; }
+
+
+
+.top-user-tip{ position: absolute;top:3px;left:33px;width: 12px;height: 6px;background: url(../../images/pc/pub/topbar.png) -8px -186px; }
+
+
+
+.main-nav { margin-top: 20px; height: 59px; vertical-align: top; border-bottom: 3px solid #2d190f; }
+.head_logo{ float: left; width: 160px; height: 49px; background: url(../../images/pc/pub/logo.jpg); }
+.head_logo a{ display:block; width: 100%;height: 100%; }
+.main-nav ul { float: left; margin-left: 6px; }
+.main-nav ul li {float:left; margin-left: 50px; line-height: 59px;}
+.main-nav ul li a{font-size:22px; display: block;}
+.main-nav ul li.act { background: url(../../images/pc/pub/nav_act.png) center bottom no-repeat; }
+.main-nav ul li.act a {color: #773b09;}
+.sub-nav-information { display: none; margin-left: 40px; }
+.sub-nav-watch { display: none; margin-left: 40px; }
+.sub-nav-jewellery { display: none; margin-left: 40px; }
+.sub-nav-lady { display: none; margin-left: 40px; }
+.sub-nav-forum { display: none; margin-left: 40px; }
+.sub-nav-brand { display: none; margin-left: 40px; }
+.sub-nav-shop { display: none; margin-left: 40px; }
+.sub-nav { line-height: 56px; }
+.sub-nav a {color: #626262; font-size: 16px; display: inline-block; padding: 0 16px;}
+.sub-nav a:hover,.sub-nav a.hover{ color: #996600; }
+.sub-nav b { font-style:italic;font-weight: normal; font-size: 14px; color: #d2d2d2; }
+.sub-nav .act { display: block; }
+/*footer*/
+.footer { width: 1000px;margin: 100px auto 0; padding-bottom: 50px; }
+.foot-link { text-align: center; line-height: 24px; }
+.footline { background-color:#999; width: 1px; height:12px;overflow: hidden; display: inline-block; vertical-align: middle; margin: 0 10px;  }
+.iphone-ico i,.android-ico i,.telphone-ico i{ background:url(../../images/pc/pub/ico_phone.png) no-repeat -3px 0; display:inline-block;width:18px; height:20px;padding-right:5px; vertical-align:middle;margin-top:-4px;*margin-top:0;margin-left:2px;}
+.android-ico i{ background-position:-1px -26px;width:21px; height:24px; line-height:24px;margin-left:13px;}
+.telphone-ico i{ background-position:-6px -59px;width:11px; height:22px; line-height:22px;margin-left:12px;}
+.wbfoot{ background:url(../../images/index/v_xbiao.png) no-repeat 0 5px;padding-left:20px; display:inline-block; height:24px;}
+.copyright { text-align: center; margin-top: 10px; }
+.friendlink { border:1px solid #ababab;overflow:hidden; margin:20px auto 0; position:relative; background:#e5e5e5;}
+.mod-hd {color: #535353;font-size: 14px;line-height: 16px; float:left;width:18px;padding:0 14px;  position:absolute; top:50%; margin-top:-32px;}
+.copy_text{ float:right; padding-right:15px; height:40px; line-height:40px; color:#996600; font-size:14px; cursor:pointer;}
+.mod-hd strong{ font-weight:100;}
+.friendlink p { float:right;width:944px; line-height:26px;padding:5px;background:#f7f7f7;min-height:85px;}
+.friendlink a {display: inline-block;white-space: nowrap; color:#7f7e7e; margin:0 5px;}
+.friendlink a:hover {background: none;text-decoration: underline;color: #c39532;}
+.friendlinkpic { display:block; border-bottom:1px dotted #c7c7c7; margin:0 5px 2px; padding-bottom: 10px;}
+.friendlinkpic a { margin:5px 20px 0 0;}
+.friendlinkpic a img { border:1px solid #c9c9c9;}
+.f_company {float:left;padding-top:7px;font-size:12px;}
+#bdshare { margin-left:210px; margin-top: 5px; display:inline;}
+#bdshare img { width:16px; height:16px;}
+/*page*/
+.page{width: 768px;height: 38px;margin: 0 auto;font-size: 18px;line-height: 38px;overflow: hidden;text-align: center;}
+.page span,.page a{margin: 0 5px 0 0;}
+.page a{display: inline-block;height: 36px;border: 1px solid #eee;padding: 0 9px;color: #969696;}
+.page a:hover{color: #996600;}
+.page .act{display: inline-block;height: 36px;border: 1px solid #773b09;color: #fff;padding: 0 9px;background: #773b09;}
+.page .ar{display: inline-block;height: 36px;border: 1px solid #eee;color: #e5e5e5;background: url(../../images/pc/information/ar.png) no-repeat;text-align: left;margin: 0;}
+.page .prev{padding: 0 0 0 65px;width: 73px;background-position: 0 -10px;}
+.page .next{background-position: 100% -68px;padding: 0 0 0 20px;width: 118px;color: #313131;margin: 0;}
+.page .prev2{background-position: 0 -184px;padding: 0 0 0 65px;width: 73px;color: #313131;}
+.page .next2{background-position: 100% -126px;padding: 0 0 0 20px;width: 118px;}
+.page .next:hover,.page .prev2:hover{border-color: #969696;}
+/*winlogin*/
+.winlogin { width:620px; /*box-shadow:2px 2px 3px #ccc;*/ position:relative;_zoom:1; display:none;}
+.x_closewin { display:block; width:41px; height:40px; position:absolute; background:url(http://www.xbiao.com/images/winlogin_x.png); right:-20px; top:-20px; cursor:pointer;_filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='http://www.xbiao.com/images/winlogin_x.png'); _background:none; overflow:hidden;}
+.winlogin_head { width:100%; background:url(http://www.xbiao.com/images/winlogin_h.png) no-repeat; overflow:hidden;}
+.winlogin_head .headbg { height:55px; padding-left:20px; background:#f7f7f7; line-height:55px; border-left:1px solid #ccc; border-right:1px solid #ccc; margin-top:5px;}
+.winlogin_head .headbg h2,.winlogin_head .headbg .h2,.winlogin_head .headbg a {font-size:20px; font-weight:bold; display:inline; background:none;}
+.winlogin_head .headbg h2,.winlogin_head .headbg .h2 { color:#333;}
+.winlogin_head .headbg span { font-size:20px; color:#999; font-weight:100; margin:0 15px;}
+.winlogin_head .headbg a{ color:#960;}
+.winlogin_head .headbg a:hover { color:#960; text-decoration:underline;} 
+.winlogin_c { width:618px; border-left:1px solid #ccc; border-right:1px solid #ccc; background:#fff; padding-bottom:65px;}
+.winlogin_form { margin:50px 0 0 50px;  padding-right:50px; border-right:1px solid #e3e3e3; display:inline; width:262px;}
+.winlogin_form p { position:relative;}
+.winlogin_form .inputlabel { position:absolute; left:40px; line-height:40px; font-size:16px; color:#ccc; cursor:text;}
+.xuser_name ,.xuser_pwd { width:262px; height:40px; background:url(http://www.xbiao.com/images/winlogin.png) top left; background-position:0 -70px;}
+.xuser_name input,.xuser_pwd input { border:0; height:34px; margin-left:35px; margin-top:3px; width:220px; font-size:16px; line-height:34px; color:#333;outline:none;}
+.xuser_pwd { background-position:0 -110px; margin-top:20px;}
+.winlogin_smt { margin-top:20px; overflow:hidden; position:relative;_zoom:1;}
+.xuser_submit { display:inline-block; width:105px; height:40px;background:url(http://www.xbiao.com/images/winlogin.png) top left; background-position:-105px 0; border:0; cursor:pointer; float:left;}
+.winlogin_smt .remepwd { width:140px; height:15px; line-height:15px;left:18px; *left:15px; top:12px;font-family:Verdana, Geneva, sans-serif; display:inline-block; float:left; position:relative; color:#333;}
+.winlogin_smt .remepwd input { display:inline;position:relative; left:-3px; top:1px; float:left; width:13px; height:13px;}
+.winlogin_smt .remepwd label { float:left;}
+.winlogin_smt .remepwd a { float:right; color:#960;}
+.winlogin_wbqq { padding:50px 20px;}
+.wbqq { margin-top:25px; margin-left:10px; overflow:hidden;_zoom:1;}
+.wbqq a { width:47px; display:inline-block; float:left; padding-top:50px;background:url(http://www.xbiao.com/images/winlogin.png) top left; white-space:nowrap; color:#333; text-align:center;}
+.wbqq a:hover { text-decoration:underline; color:#333;}
+.wbqq a.login_qq { margin-left:30px; background-position:-50px 0;}
+.wbqq a.login_wx { margin-left:30px; background-position:-273px 0;}
+.winlogin_foot { width:100%; height:5px; background:url(http://www.xbiao.com/images/winlogin_f.png) no-repeat; overflow:hidden;}

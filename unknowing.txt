@@ -1,0 +1,4 @@
+1¡¢extend·½·¨
+   if(target === copy){ 
+	continue;
+   }
