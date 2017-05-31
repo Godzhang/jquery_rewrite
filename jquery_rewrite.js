@@ -1,7 +1,9 @@
 (function(window, undefined){
 var rootJQuery,
 
-	rquickExpr = /^(?:\s*(<[\w\W]+>)[^>]*|#([\w-]*))$/, //匹配复杂Html代码或#id值
+	rquickExpr = /^(?:\s*(<[\w\W]+>)[^>]*|#([\w-]*))$/,
+	//匹配未闭合标签$("<li>hello")或#id值
+	rsingleTag = /^<(\w+)\s*\/?>(?:<\/\1>|)$/,  //匹配独立标签<li><li> 或 <li />
 	class2type = {},  //存放检测类型
 	core_deletedIds = [],
 	core_version = "2.0.3",
@@ -23,33 +25,117 @@ var rootJQuery,
 	};
 
 jQuery.fn = jQuery.prototype = {
+	jquery: core_version,
+
 	contructor: jQuery,
 
-	init: function(selector, context, rootJQuery){
+	init: function( selector, context, rootjQuery ) {
 		var match, elem;
 
-		//处理情况: $(""),$(null),$(undefined),$(false)
-		if(!selector){
+		// HANDLE: $(""), $(null), $(undefined), $(false)
+		if ( !selector ) {
 			return this;
 		}
 
-		//处理html字符串
-		if(typeof selector === "string"){
-			if(selector.charAt(0) === '<' && selector.charAt(selector.length - 1) === '>' && selector.length >=3 ){
-				match = [null, selector, null];
-			}else{
-				match = rquickExpr.exec(selector);
+		// Handle HTML strings
+		//$("#div") $(".box") $("div") $("#div div.box") $("<li>") $("<li>1</li><li>2</li>")
+		if ( typeof selector === "string" ) {
+			if ( selector.charAt(0) === "<" && selector.charAt( selector.length - 1 ) === ">" && selector.length >= 3 ) {
+				// Assume that strings that start and end with <> are HTML and skip the regex check
+				match = [ null, selector, null ];
+				//match = [null, '<li>', null]
+			} else {
+				match = rquickExpr.exec( selector );
+				//匹配id时 => match = ['#div', null, 'div']
+				//匹配未闭合标签时 => match = ['<li>hello','<li>',null]
+				//其他 => match = null
 			}
 
-			if(match && (match[1] || !context)){
-				if(match[1]){//创建标签类型的选择器
-					context = context instanceof jQuery ? context[0] : context;
+			// Match html or make sure no context is specified for #id
+			//创建标签或者获取id  match !== null  进入if
+			//match[1] 创建标签为真match = [null, '<li>', null]
+			//!context 没有上下文 => id
+			if ( match && (match[1] || !context) ) {
 
+				//创建标签类型的选择器
+				if ( match[1] ) {
+					//context = document ||　$(documet)
+					context = context instanceof jQuery ? context[0] : context; //最终得到原生document
 
+					// scripts is true for back-compat
+					jQuery.merge( this, jQuery.parseHTML(
+						match[1],
+						context && context.nodeType ? context.ownerDocument || context : document,
+						true
+					) );
+
+					// HANDLE: $(html, props)
+					if ( rsingleTag.test( match[1] ) && jQuery.isPlainObject( context ) ) {
+						for ( match in context ) {
+							// Properties of context are called as methods if possible
+							if ( jQuery.isFunction( this[ match ] ) ) {
+								this[ match ]( context[ match ] );
+
+							// ...and otherwise set as attributes
+							} else {
+								this.attr( match, context[ match ] );
+							}
+						}
+					}
+
+					return this;
+
+				//创建id类型的选择器
+				} else {
+					elem = document.getElementById( match[2] );
+
+					// Check parentNode to catch when Blackberry 4.6 returns
+					// nodes that are no longer in the document #6963
+					if ( elem && elem.parentNode ) {
+						// Inject the element directly into the jQuery object
+						this.length = 1;
+						this[0] = elem;
+					}
+
+					this.context = document;
+					this.selector = selector;
+					return this;
 				}
+
+			// HANDLE: $(expr, $(...))
+			} else if ( !context || context.jquery ) {
+				return ( context || rootjQuery ).find( selector );
+
+			// HANDLE: $(expr, context)
+			// (which is just equivalent to: $(context).find(expr)
+			} else {
+				return this.constructor( context ).find( selector );
 			}
+
+		// HANDLE: $(DOMElement)
+		//$(this) $(document)
+		} else if ( selector.nodeType ) {
+			this.context = this[0] = selector;
+			this.length = 1;
+			return this;
+
+		// HANDLE: $(function)
+		// Shortcut for document ready
+		} else if ( jQuery.isFunction( selector ) ) {//这里是为什么$(function(){})==$(document).ready(function() {})
+			return rootjQuery.ready( selector );
 		}
-	}
+
+		if ( selector.selector !== undefined ) {//对应$($('#div'))的情况
+			this.selector = selector.selector;
+			this.context = selector.context;
+		}
+		//$([]) $({})
+		return jQuery.makeArray( selector, this );//类数组转化为数组的方法,$.makeArray()
+	},
+
+	selector: "",
+
+	length: 0
 }
 
 jQuery.fn.init.prototype = jQuery.prototype;
@@ -206,6 +292,47 @@ jQuery.extend({
 	},
 	isWindow: function(obj){
 		return obj != null && obj === obj.window;
+	},
+	//将字符串解析成节点数组
+	parseHTML: function(data, context, keepScripts){
+		//data为空或不是字符串，返回null
+		if( !data || typeof data !== 'string'){
+			return null;
+		}
+
+		if(typeof context === "boolean"){
+			keepScripts = context;
+			context = false;
+		}
+		 
+		context = context || document;
+
+		var parsed = rsingleTag.exec(data),
+			scripts = !keepScripts && [];
+
+		//单标签
+		if(parsed){
+			//如果是单个标签就调用相应的createElement方法，默认上下文是document!  
+			return [ context.createElement( parsed[1] ) ];
+		}
+		//多标签<li></li><script></script>
+		//如果不是单个标签就调用buildFragment方法，把html字符串传入，同时上下文也传入，第三个参数就是scripts!  
+    	//如果paseHTML的第三个参数是false，那么这里的scripts就是一个数组，传递到buildFragment中会把所有的script标签放在里面  
+    	//所以就要收到移除!
+		parsed = jQuery.buildFragment( [data], context, scripts);//节点碎片,创建DOM
+
+		if(scripts){
+			jQuery(scripts).remove();
+		}
+		//buildFragment返回的是文档碎片，所以要变成数组，调用merge方法!  
+		return jQuery.merge([], parsed.childNodes);
+	},
+	buildFragment: function(){
+
+	},
+	//把类数组,json,数字,字符串转为数组
+	makeArray: function(arr, results){
+
 	}
 });
 

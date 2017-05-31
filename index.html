@@ -25,28 +25,12 @@
 <div></div>
 
 <script>
-function isArraylike(obj){//判断数组,类数组,或者jq对象特殊json
-	var length = obj.length,
-		type = jQuery.type(obj);
 
-	if(jQuery.isWindow(obj)){ //测试对象是否是window对象
-		return false;
-	}
+var rquickExpr = /^(?:\s*(<[\w\W]+>)[^>]*|#([\w-]*))$/;
+var rsingleTag = /^<(\w+)\s*\/?>(?:<\/\1>|)$/;
+var id = '<li></li>';
 
-	 //如果是dom元素，则为if(length)；若length为true；则返回true
-	if(obj.nodeType === 1 && length){ //元素节点
-		return true;
-	}
-													  //空arguments	  //[{}] => length = 1
-	//如果obj的类型是"array",//obj不能是function类型  //length为0,    //length的属性是number为true //length大于0；//length-1在obj里面是否存在
-	return type === 'array' || type !== 'function' && (length === 0 || typeof length === 'number' && length > 0 && (length - 1) in obj );
-}
-
-
-
-
-
-
+console.log(rsingleTag.exec(id));
 
 
 
