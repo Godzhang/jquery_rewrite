@@ -181,13 +181,18 @@ jQuery.extend({
 			}
 		}else{
 			if(isArray){
-				for( ; i<length;i++){
-					value = callback.call( obj[i], i, obj[i] );
+				// for( ; i<length;i++){
+				// 	value = callback.call( obj[i], i, obj[i] );
 
-					if(value === false){
-						break;
-					}
-				}
+				// 	if(value === false){
+				// 		break;
+				// 	}
+				// }
+
+				//forEach实现方法
+				obj.forEach(function(val, eq){
+					callback.call(val, eq, val);
+				});
 			}else{
 				for( i in obj){
 					value = callback.call(obj[i],i,obj[i]);
@@ -213,19 +218,18 @@ function isArraylike(obj){//判断数组,类数组,或者jq对象特殊json
 	var length = obj.length,
 		type = jQuery.type(obj);
 
-	if(jQuery.isWindow(obj)){ //测试对象是否是窗口
+	if(jQuery.isWindow(obj)){ //测试对象是否是window对象
 		return false;
 	}
 
+	 //如果是dom元素，则为if(length)；若length为true；则返回true
 	if(obj.nodeType === 1 && length){ //元素节点
 		return true;
 	}
-
-	return type === 'array' || type !== 'function' && 
-		(length === 0 || typeof length === 'number' && length > 0 && (length - 1) in obj );
+													  //空arguments	  //[{}] => length = 1
+	//如果obj的类型是"array",//obj不能是function类型  //length为0,    //length的属性是number为true //length大于0；//length-1在obj里面是否存在
+	return type === 'array' || type !== 'function' && (length === 0 || typeof length === 'number' && length > 0 && (length - 1) in obj );
 }
-
-
 
 
 

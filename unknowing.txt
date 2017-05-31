@@ -2,3 +2,23 @@
    if(target === copy){ 
 	continue;
    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
