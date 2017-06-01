@@ -63,13 +63,14 @@ jQuery.fn = jQuery.prototype = {
 					context = context instanceof jQuery ? context[0] : context; //最终得到原生document
 
 					// scripts is true for back-compat
-					jQuery.merge( this, jQuery.parseHTML(
+					jQuery.merge( this, jQuery.parseHTML(//?#?
 						match[1],
 						context && context.nodeType ? context.ownerDocument || context : document,
 						true
 					) );
 
 					// HANDLE: $(html, props)
+					//$("<li>",{title: 'hi',html: 'zhangqi'});
 					if ( rsingleTag.test( match[1] ) && jQuery.isPlainObject( context ) ) {
 						for ( match in context ) {
 							// Properties of context are called as methods if possible
@@ -103,23 +104,27 @@ jQuery.fn = jQuery.prototype = {
 				}
 
 			// HANDLE: $(expr, $(...))
+			//$("ul",$(document))
+			//jQuery(document).find()
 			} else if ( !context || context.jquery ) {
 				return ( context || rootjQuery ).find( selector );
 
 			// HANDLE: $(expr, context)
 			// (which is just equivalent to: $(context).find(expr)
+			//$("ul",document)
+			//同上，结果相同
 			} else {
 				return this.constructor( context ).find( selector );
 			}
 
 		// HANDLE: $(DOMElement)
-		//$(this) $(document)
+		//$(this) $(document)  原生对象转jQuery对象
 		} else if ( selector.nodeType ) {
 			this.context = this[0] = selector;
 			this.length = 1;
 			return this;
 
-		// HANDLE: $(function)
+		// HANDLE: $(function) == $(document).ready(function)
 		// Shortcut for document ready
 		} else if ( jQuery.isFunction( selector ) ) {//这里是为什么$(function(){})==$(document).ready(function() {})
 			return rootjQuery.ready( selector );
@@ -129,13 +134,17 @@ jQuery.fn = jQuery.prototype = {
 			this.selector = selector.selector;
 			this.context = selector.context;
 		}
-		//$([]) $({})
-		return jQuery.makeArray( selector, this );//类数组转化为数组的方法,$.makeArray()
+		
+		return jQuery.makeArray( selector, this );//类数组转化为数组的方法
 	},
 
 	selector: "",
 
-	length: 0
+	length: 0,
+
+	toArray: function (){
+		return core_slice.call(this);
+	}
 }
 
 jQuery.fn.init.prototype = jQuery.prototype;
@@ -332,7 +341,19 @@ jQuery.extend({
 	},
 	//把类数组,json,数字,字符串转为数组
 	makeArray: function(arr, results){
+		var ret = results || [];
 
+		if(arr != null){
+			if(isArraylike( Object(arr) )){
+				jQuery.merge(ret,
+					typeof arr === 'string' ? [ arr ] : arr
+				);
+			}else{
+				[].push.call(ret, arr);
+			}
+		}
+
+		return ret;
 	}
 });
 
