@@ -144,7 +144,38 @@ jQuery.fn = jQuery.prototype = {
 
 	toArray: function (){
 		return core_slice.call(this);
+	},
+
+	get: function(num){
+		return num == null ? this.toArray() : (num < 0 ? this[this.length + num] : this[num]);
+	},
+	//将一个DOM元素集合加入到jQuery栈。
+	pushStack: function(elems){
+		//构建一个新的jQuery匹配元素集
+		var ret = jQuery.merge(this.contructor(), elems);
+		//将当前操作对象添加到堆栈上
+		ret.prevObject = this;
+		ret.context = this.context;
+
+		return ret;
+	},
+	end: function(){
+		return this.prevObject || this.contructor(null);
+	},
+	each: function(callback, args){
+		return jQuery.each.call(this, callback, args);
+	},
+	slice: function(){
+		return this.pushStack( core_slice.apply(this, arguments) );
+	},
+	first: function(){
+		return this.eq(0)
+	},
+	last: function(){
+		return this.eq(-1);
 	}
+
+
 }
 
 jQuery.fn.init.prototype = jQuery.prototype;
