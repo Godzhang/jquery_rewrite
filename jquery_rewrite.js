@@ -1,9 +1,13 @@
 (function(window, undefined){
 var rootJQuery,
-
-	rquickExpr = /^(?:\s*(<[\w\W]+>)[^>]*|#([\w-]*))$/,
-	//匹配未闭合标签$("<li>hello")或#id值
+	readyList,
+	rquickExpr = /^(?:\s*(<[\w\W]+>)[^>]*|#([\w-]*))$/,//匹配未闭合标签$("<li>hello")或#id值
 	rsingleTag = /^<(\w+)\s*\/?>(?:<\/\1>|)$/,  //匹配独立标签<li><li> 或 <li />
+	rmsPrefix = /^-ms-/,
+	rdashAlpha = /-([\da-z])/gi,
+	fcamelCase = function( all, letter ) {
+		return letter.toUpperCase();
+	},
 	class2type = {},  //存放检测类型
 	core_deletedIds = [],
 	core_version = "2.0.3",
@@ -22,7 +26,42 @@ var rootJQuery,
 
 	jQuery = function(selector, context){
 		return new jQuery.fn.init(selector, context, rootJQuery);
+	},
+
+	completed = functiono(){
+		document.removeEventListener("DOMContentLoaded", completed, false);
+		window.removeEventListener("load", completed, false);
+		jQuery.ready();
 	};
+
+var rxhtmlTag = /<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>]*)\/>/gi,
+	rtagName = /<([\w:]+)/,
+	rhtml = /<|&#?\w+;/,
+	rnoInnerhtml = /<(?:script|style|link)/i,
+	manipulation_rcheckableType = /^(?:checkbox|radio)$/i,
+	// checked="checked" or checked
+	rchecked = /checked\s*(?:[^=]|=\s*.checked.)/i,
+	rscriptType = /^$|\/(?:java|ecma)script/i,
+	rscriptTypeMasked = /^true\/(.*)/,
+	rcleanScript = /^\s*<!(?:\[CDATA\[|--)|(?:\]\]|--)>\s*$/g,
+
+	// We have to close these tags to support XHTML (#13200)
+	wrapMap = {
+
+		// Support: IE 9
+		option: [ 1, "<select multiple='multiple'>", "</select>" ],
+
+		thead: [ 1, "<table>", "</table>" ],
+		col: [ 2, "<table><colgroup>", "</colgroup></table>" ],
+		tr: [ 2, "<table><tbody>", "</tbody></table>" ],
+		td: [ 3, "<table><tbody><tr>", "</tr></tbody></table>" ],
+
+		_default: [ 0, "", "" ]
+	};
+
+var data_user, data_priv,
+	rbrace = /(?:\{[\s\S]*\}|\[[\s\S]*\])$/,
+	rmultiDash = /([A-Z])/g;
 
 jQuery.fn = jQuery.prototype = {
 	jquery: core_version,
@@ -53,7 +92,7 @@ jQuery.fn = jQuery.prototype = {
 
 			// Match html or make sure no context is specified for #id
 			//创建标签或者获取id  match !== null  进入if
-			//match[1] 创建标签为真match = [null, '<li>', null]
+			//match[1] 创建标签为真,match = [null, '<li>', null]
 			//!context 没有上下文 => id
 			if ( match && (match[1] || !context) ) {
 
@@ -63,7 +102,7 @@ jQuery.fn = jQuery.prototype = {
 					context = context instanceof jQuery ? context[0] : context; //最终得到原生document
 
 					// scripts is true for back-compat
-					jQuery.merge( this, jQuery.parseHTML(//?#?
+					jQuery.merge( this, jQuery.parseHTML(
 						match[1],
 						context && context.nodeType ? context.ownerDocument || context : document,
 						true
@@ -173,9 +212,24 @@ jQuery.fn = jQuery.prototype = {
 	},
 	last: function(){
 		return this.eq(-1);
+	},
+	eq: function(i){
+		var len = this.length,
+			j = +i + (i < 0 ? len : 0);
+
+		return this.pushStack( j > 0 && j < len ? [this[j]] : []);
+	},
+	map: function(callback){
+		return this.pushStack( jQuery.map(this, function(elem, i){
+			return callback.call(elem, i, elem);
+		}) );
+	},
+	ready: function(fn){  //?#?
+		//延迟对象
+		jQuery.ready.promise().done( fn );
+
+		return this;
 	}
-
-
 }
 
 jQuery.fn.init.prototype = jQuery.prototype;
@@ -269,7 +323,6 @@ jQuery.extend({
 	isFunction: function(obj){
 		return jQuery.type(obj) === "function";
 	},
-
 	isArray: Array.isArray,//原生方法
 
 	type: function(obj){ //判断类型
@@ -277,9 +330,6 @@ jQuery.extend({
 			return String(obj);
 		}
 		return typeof obj === "object" || typeof obj === "function" ? class2type[ core_toString.call(obj) ] || "object" : typeof obj;
-	},
-	isPlainObject: function(obj){ //判断是否为对象
-
 	},
 	each: function(obj, callback, args){
 		var value,
@@ -331,44 +381,12 @@ jQuery.extend({
 		}
 	},
 	isWindow: function(obj){
-		return obj != null && obj === obj.window;
+		//obj.window  全局对象下的浏览器窗口
+		return obj != null && obj === obj.window; 
 	},
-	//将字符串解析成节点数组
-	parseHTML: function(data, context, keepScripts){
-		//data为空或不是字符串，返回null
-		if( !data || typeof data !== 'string'){
-			return null;
-		}
-
-		if(typeof context === "boolean"){
-			keepScripts = context;
-			context = false;
-		}
-		 
-		context = context || document;
-
-		var parsed = rsingleTag.exec(data),
-			scripts = !keepScripts && [];
-
-		//单标签
-		if(parsed){
-			//如果是单个标签就调用相应的createElement方法，默认上下文是document!  
-			return [ context.createElement( parsed[1] ) ];
-		}
-		//多标签<li></li><script></script>
-		//如果不是单个标签就调用buildFragment方法，把html字符串传入，同时上下文也传入，第三个参数就是scripts!  
-    	//如果paseHTML的第三个参数是false，那么这里的scripts就是一个数组，传递到buildFragment中会把所有的script标签放在里面  
-    	//所以就要收到移除!
-		parsed = jQuery.buildFragment( [data], context, scripts);//节点碎片,创建DOM
-
-		if(scripts){
-			jQuery(scripts).remove();
-		}
-		//buildFragment返回的是文档碎片，所以要变成数组，调用merge方法!  
-		return jQuery.merge([], parsed.childNodes);
-	},
-	buildFragment: function(){
-
+	isNumeric: function(obj){
+		//typeof NaN => number
+		return !isNaN(parseFloat(obj)) && isFinite(obj);
 	},
 	//把类数组,json,数字,字符串转为数组
 	makeArray: function(arr, results){
@@ -385,8 +403,293 @@ jQuery.extend({
 		}
 
 		return ret;
+	},
+	//通过规则得到一个新数组
+	map: function(elems, callback, arg){
+		var value,
+			i = 0,
+			length = elems.length,
+			isArray = isArraylike(elems),
+			ret = [];
+
+		if(isArray){
+			for( ; i<length;i++){
+				value = callback( elems[i], i, arg );
+
+				if(value != null){
+					ret[ret.length] = value;
+				}
+
+			}
+		}else{
+			for(i in elems){
+				value = callback( elems[i], i, arg );
+
+				if(value != null){
+					ret[ret.length] = value;
+				}
+			}
+		}
+		//避免复合数组[[],[],[]……]
+		//apply的第二个参数是数组形式，所以可以把复合数组里的数组当作参数
+		return core_concat.apply([], ret);
+	},
+	expando: "jQuery" + ( core_version + Math.random() ).replace( /\D/g , ""),
+	noConflict: function(deep){
+		if(window.$ === jQuery){
+			window.$ = _$;
+		}
+
+		if(deep && window.jQuery === jQuery){
+			window.jQuery = _jQuery;
+		}
+
+		return jQuery;
+	},
+	//DOM是否加载完毕
+	isReady: false,
+ 	//等待多少文件的计数器
+ 	readyWait: 1,
+ 	//推迟dom触发,参数为布尔值
+ 	holdReady: function(hold){
+ 		if(hold){
+ 			jQuery.readyWait++;
+ 		}else{
+ 			jQuery.ready(true);
+ 		}
+ 	},
+ 	//准备DOM触发
+ 	ready: function(wait){
+ 		if(wait === true ? --jQuery.readyWait : jQuery.isReady){
+ 			return;
+ 		}
+ 		//让DOM准备完毕
+ 		isReady = true;
+
+ 		if(wait !== true && --jQuery.readyWait > 0){
+ 			return;
+ 		}
+
+ 		//立即触发延迟函数,reaolvewith()可以进行传参
+ 		readyList.resolveWith( document, [jQuery] );
+
+ 		//主动触发事件,用于$(document).on('ready', function () {})
+ 		if(jQuery.fn.trigger){
+ 			jQuery(document).trigger("ready").off("ready");
+ 		}
+ 	},
+ 	isPlainObject: function(obj){ //判断是否为对象
+ 		//排除非Object类型，DOM对象 和 window对象
+		if ( jQuery.type( obj ) !== "object" || obj.nodeType || jQuery.isWindow( obj ) ) {
+			return false;
+		}	
+		//旧版本火狐浏览器有问题
+		//判断这个对象的直接原型对象是否拥有isPortotypeOf方法，没有则被排除
+		try {
+			if (obj.constructor && 
+				!core_hasOwn.call(obj.constructor.prototype, "isPrototypeOf")){
+				return false;
+			}
+		}catch(e){
+			return false;
+		}
+
+		return true;
+	},
+	isEmptyObject: function( obj ){//是否为空对象,没有自身下的属性和方法,就返回true
+		for(var name in obj){//for in 循环非系统自带的属性
+			return false;
+		}
+		return true;
+	},
+	error: function( msg ){
+		throw new Error( msg );
+	},
+	//将字符串解析成节点数组
+	parseHTML: function(data, context, keepScripts){  
+		//data为空或不是字符串，返回null
+		if( !data || typeof data !== 'string'){
+			return null;
+		}
+		//第二个参数为boolean的处理
+		if(typeof context === "boolean"){
+			keepScripts = context;
+			context = false;
+		}
+		 
+		context = context || document;
+
+		var parsed = rsingleTag.exec(data),
+			scripts = !keepScripts && [];
+
+		//单标签
+		if(parsed){
+			//如果是单个标签就调用相应的createElement方法，默认上下文是document!
+			return [ context.createElement( parsed[1] ) ];
+		}
+		//多标签<li></li><script></script>或其他字符串
+		//如果不是单个标签就调用buildFragment方法，把html字符串传入，同时上下文也传入，第三个参数就是scripts!  
+    	//如果paseHTML的第三个参数是false，那么这里的scripts就是一个数组，传递到buildFragment中会把所有的script标签放在里面  
+    	//所以就要收到移除!
+		parsed = jQuery.buildFragment( [data], context, scripts);//节点碎片,创建DOM
+
+		if(scripts){//释放内存
+			jQuery(scripts).remove();
+		}
+		//buildFragment返回的是文档碎片，所以要变成数组，调用merge方法!  
+		return jQuery.merge([], parsed.childNodes);
+	},
+	buildFragment: function(elems, context, scripts, selection){   //?#? 还需继续研究
+		var elem, tmp, tag, wrap, contains, j,
+		i = 0,
+		l = elems.length,
+		fragment = context.createDocumentFragment(),
+		nodes = [];
+
+		for(; i<l; i++){
+			elem = elems[i];
+			
+			//直接添加节点
+			if(elem || elem === 0){
+				//如果是object那么直接放入nodes对象里面,以后直接添加到documentFragment中!
+				if(jQuery.type(elem) === "object"){
+					jQuery.merge(nodes, elem.nodeType ? [elem] : elem);
+				//把非html的内容转化为文本节点，也就是不是html标签，html标签要么开头是<要么开头是"&",构建文本节点!  
+				}else if( !rhtml.test(elem) ){ //rhtml正则没看懂 ?#?
+					nodes.push(context.createTextNode(elem));
+				//把HTML变成DOM节点
+				}else{
+					tmp = tmp || fragment.appendChild( context.createElement("div") );
+
+					//获取标签元素
+					tag = ( rtagName.exec(elem) || ["",""])[1].toLowerCase();
+					//
+					wrap = wrapMap[tag] || wrapMap._default;
+					//添加到tmp
+					tmp.innerHTML = wrap[1] + elem.replace(rxhtmlTag, "<$1><$2>") + wrap[2];
+
+					//取得elem的父节点
+					j = wrap[0];
+					while(j--){
+						tmp = tmp.lastChild;
+					}
+
+					jQuery.merge(nodes, tmp.childNodes);
+
+					tmp = fragment.firstChild;
+					//清空tmp
+					tmp.textContent = "";
+
+				}
+			}
+		}
+		//清空fragment
+		fragment.textContent = "";
+
+		i = 0;
+		while((elem = nodes[i++])){
+
+			if(selection && jQuery.inArray(elem, selection) !== -1){
+				continue;
+			}
+
+			contains = jQuery.contains(elem.ownerDocument, elem);
+
+			tmp = getAll(fragment.appendChild(elem), "script");
+
+			if(contains){
+				setGlobalEval(tmp);
+			}
+
+			if(scripts){
+				j = 0;
+				while((elem = tmp[j++])){
+					if(rscriptType.test(elem.type || "")){
+						scripts.push(elem);
+					}
+				}
+			}
+		}
+		return fragment;
+	},
+	inArray: function(elem, arr, i){//i代表查找起始位置
+		return arr == null ? -1 : core_indexOf.call(arr, elem, i);
+	},
+	parseJSON: JSON.parse,  //JSON字符串解析为对象
+
+	noop: function(){},  //容错函数
+
+	parseXML: function(data){  //该版本方法已放弃对IE的操作
+		var xml,tmp;
+		if( !data || typeof data !== "string"){
+			return null;
+		}
+		//DOMParser 对象解析 XML 文本并返回一个 XML Document 对象。要使用 DOMParser，
+		//使用不带参数的构造函数来实例化它，然后调用其 parseFromString() 方法
+		try{
+			tmp = new DOMParser();
+			xml = tmp.parseFromString( data, "text/xml" );
+		}catch(e){
+			xml = undefined;
+		}
+					//在 IE 以外的浏览器中，如果解析失败，方法 parseFromString() 不会抛出任何异常，只会返回一个包含了错误信息的文档对象
+		if( !xml || xml.getElementsByTagName("parsererror").length){
+			jQuery.error("Invalid XML: " + data);
+		}
+		return xml;
+	},
+
+	globalEval: function(code){
+		var script,
+			indirect = eval,  //把eval赋给一个变量，eval作为window下的属性赋给变量，window.eval()，所以成为全局执行
+			code = jQuery.trim(code);
+
+		if(code){
+			if(code.indexOf("use strict") === 1){//严格模式下不支持eval()解析
+				script = document.createElement("script");  
+				script.text = code;
+				document.head.appendChild(script).parentNode.removeChild(script);
+			}else{
+				indirect(code);
+			}
+		}
+	},
+	//驼峰命名转化
+	camelCase: function(string){
+		return string.replace( rmsPrefix, "ms-").replace( rdashAlpha, fcamelCase );
+	},
+	//是否为指定节点名,返回布尔值
+	nodeName: function(elem, name){
+		return elem.nodeName && elem.nodeName.toLowerCase() === name.toLowerCase();
 	}
+
+
+
+
+
+
+
 });
+
+jQuery.ready.promise = function( obj ){//检测dom异步操作
+	if( !readyList ){  //只走一次
+		readyList = jQuery.Deferred();
+	}
+	//"comlpete"状态 => 代表DOM已加载完毕
+	if(document.readyState === "comlpete"){
+		setTimeout( jQuery.ready );//加定时器原因:为了在IE下表现没有问题,IE可能会提前触发
+	}else{
+		//这里触发两个状态原因
+        //两个事件触发先不确定
+        //正常情况load在DOMContentLoad之后
+        //但是有缓存的情况下,load在DOMContentLoad之前
+        //最终的目的是触发最先触发的回调(为了最快触发事件)
+        document.addEventListener("DOMContentLoaded", completed, false);
+
+        window.addEventListener("load", completed, false);
+	}
+	return readyList.promise( obj );
+}
 
 var typeArray = "Boolean Number String Function Array Date RegExp Object Error".split(" ");
 jQuery.each(typeArray,function(i, name){
@@ -410,8 +713,26 @@ function isArraylike(obj){//判断数组,类数组,或者jq对象特殊json
 	return type === 'array' || type !== 'function' && (length === 0 || typeof length === 'number' && length > 0 && (length - 1) in obj );
 }
 
+// function setGlobalEval( elems, refElements ) {
+// 	var l = elems.length,
+// 		i = 0;
 
+// 	for ( ; i < l; i++ ) {
+// 		data_priv.set(
+// 			elems[ i ], "globalEval", !refElements || data_priv.get( refElements[ i ], "globalEval" )
+// 		);
+// 	}
+// }
 
+// function getAll( context, tag ) {
+// 	var ret = context.getElementsByTagName ? context.getElementsByTagName( tag || "*" ) :
+// 			context.querySelectorAll ? context.querySelectorAll( tag || "*" ) :
+// 			[];
+
+// 	return tag === undefined || tag && jQuery.nodeName( context, tag ) ?
+// 		jQuery.merge( [ context ], ret ) :
+// 		ret;
+// }
 
 
 

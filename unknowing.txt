@@ -4,8 +4,9 @@
    }
 
 
-
-
+2、原型map方法
+   return fn.call(elem, i, elem);
+   这个调用方式和参数顺序不同，结果却一样，搞不清楚
 
 
 
