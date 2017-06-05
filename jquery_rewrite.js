@@ -229,8 +229,12 @@ jQuery.fn = jQuery.prototype = {
 		jQuery.ready.promise().done( fn );
 
 		return this;
-	}
-}
+	},
+	//数组方法,内部使用
+	push: core_push,
+	sort: [].sort,
+	splice: [].splice
+};
 
 jQuery.fn.init.prototype = jQuery.prototype;
 
@@ -478,7 +482,7 @@ jQuery.extend({
  			jQuery(document).trigger("ready").off("ready");
  		}
  	},
- 	isPlainObject: function(obj){ //判断是否为对象
+ 	isPlainObject: function(obj){ //判断是否为素对象
  		//排除非Object类型，DOM对象 和 window对象
 		if ( jQuery.type( obj ) !== "object" || obj.nodeType || jQuery.isWindow( obj ) ) {
 			return false;
@@ -661,14 +665,37 @@ jQuery.extend({
 	//是否为指定节点名,返回布尔值
 	nodeName: function(elem, name){
 		return elem.nodeName && elem.nodeName.toLowerCase() === name.toLowerCase();
+	},
+	trim: function(text){
+		return text == null ? "" : core_trim.call(text);
+	},
+	grep: function(elems, callback, inv){
+		var retVal,
+			ret = [],
+			i = 0,
+			length = elems.length;
+			inv = !!inv;
+
+		for(; i<length; i++){
+			retVal = !!callback(elems[i], i);
+			if(inv !== retVal){
+				ret.push( elems[i] );
+			}
+		}
+
+		return ret;
+	},
+	guid: 1,
+	proxy: function(fn, context){
+
+	},
+	access: function(elems, fn, key, value, chainable, emptyGet, raw){
+
+	},
+	now: Date.now,
+	swap: function(elem, options, callback, args){
+
 	}
-
-
-
-
-
-
-
 });
 
 jQuery.ready.promise = function( obj ){//检测dom异步操作
@@ -712,6 +739,38 @@ function isArraylike(obj){//判断数组,类数组,或者jq对象特殊json
 	//如果obj的类型是"array",//obj不能是function类型  //length为0,    //length的属性是number为true //length大于0；//length-1在obj里面是否存在
 	return type === 'array' || type !== 'function' && (length === 0 || typeof length === 'number' && length > 0 && (length - 1) in obj );
 }
+
+rootjQuery = jQuery(document);
+
+jQuery.Callbacks = function(options){
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // function setGlobalEval( elems, refElements ) {
 // 	var l = elems.length,
