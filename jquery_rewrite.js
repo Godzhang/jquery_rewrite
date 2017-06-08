@@ -685,14 +685,44 @@ jQuery.extend({
 
 		return ret;
 	},
+	//为jquery对象产生一个唯一的标识符
 	guid: 1,
+	//修改函数的this指向
 	proxy: function(fn, context){
+		var tmp, args, proxy;
 
+		//var obj = {
+		//	show: function(){
+		//		console.log(this);
+		//	}
+		//}
+		//$(document).click( $.proxy(obj,'show'));
+		//obj.show指向obj
+		if(typeof context === "string"){
+			tmp = fn[ context ];
+			context = fn;
+			fn = tmp;
+		}
+
+		if(!jQuery.isFunction( fn )){
+			return undefined;
+		}
+
+		args = core_slice.call(arguments, 2);
+		proxy = function(){
+			return fn.apply(context || this, args.concat(core_slice.call(arguments)));
+		};
+
+		proxy.guid = fn.guid = fn.guid || jQuery.guid++;
+
+		return proxy;
 	},
+	//元素集合，回调函数，key，value，chainable为true -> 设置，为假 -> 获取
 	access: function(elems, fn, key, value, chainable, emptyGet, raw){
 
 	},
 	now: Date.now,
+	//css交换方法
 	swap: function(elem, options, callback, args){
 
 	}
