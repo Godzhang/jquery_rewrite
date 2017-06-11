@@ -1,6 +1,7 @@
 (function(window, undefined){
 var rootJQuery,
 	readyList,
+	core_strundefined = typeof undefined;
 	rquickExpr = /^(?:\s*(<[\w\W]+>)[^>]*|#([\w-]*))$/,//匹配未闭合标签$("<li>hello")或#id值
 	rsingleTag = /^<(\w+)\s*\/?>(?:<\/\1>|)$/,  //匹配独立标签<li><li> 或 <li />
 	rmsPrefix = /^-ms-/,
@@ -27,7 +28,7 @@ var rootJQuery,
 	jQuery = function(selector, context){
 		return new jQuery.fn.init(selector, context, rootJQuery);
 	},
-
+	core_rnotwhite = /\S+/g,
 	completed = functiono(){
 		document.removeEventListener("DOMContentLoaded", completed, false);
 		window.removeEventListener("load", completed, false);
@@ -717,9 +718,49 @@ jQuery.extend({
 
 		return proxy;
 	},
+	//多功能值的操作
 	//元素集合，回调函数，key，value，chainable为true -> 设置，为假 -> 获取
 	access: function(elems, fn, key, value, chainable, emptyGet, raw){
+		var i = 0,
+			length = elems.length,
+			bulk = key == null;	//没有key值,bulk为true
 
+		//.css({width: 100px,height: 100px}) 设置多个属性	
+		if(jQuery.type(key) === 'object'){
+			chainable = true;
+			for(i in key){
+				jQuery.access(elems, fn, i, key[i], true, emptyGet, raw);
+			}
+		}else if(value !== undefined){ //设置单个属性
+			chainable = true;
+
+			if(!jQuery.isFunction(value)){ //value不是函数
+				raw = true
+			}
+
+			//没有key值的情况
+			//针对value是函数的情况
+			if(bulk){
+				//如果value不是函数
+				if(raw){
+					fn.call(elems,value);
+					fn = null;
+				}else{ //如果value是函数
+					bulk = fn;
+					fn = function(elem, key, value){
+						return bulk.call(jQuery(elem), value);
+					}
+				}
+			}
+
+			if(fn){
+				for(; i < length; i++){
+					fn( elems[i], key, raw ? value : value.call(elems[i], i, fn(elems[i], key) ) );
+				}
+			}
+		}
+		//如果是设置，返回对象    //如果设置，返回第一个值的属性值
+		return chainable ? elems :  bulk ? fn.call(elems) :  length ? fn(elems[0], key) : emptyGet;
 	},
 	now: Date.now,
 	//css交换方法
@@ -786,18 +827,206 @@ function isArraylike(obj){//判断数组,类数组,或者jq对象特殊json
 
 rootjQuery = jQuery(document);
 
+var optionsCache = {};  //?#?这个缓存对象好像没有存值啊
+//把字符串转换为对象存储在缓存中
+function createOptions(options){
+	//多个变量指向同一对象(或数组)引用时，其中一个变量修改了被引用对象的内部结构，其他引用变量也会表现出来
+	var object = optionsCache[options] = {};
+	jQuery.each(options.match( core_rnotwhite) || [], function(_, flag){
+		object[ flag ] = true;
+	});
+	return object;
+}
+
+//回调对象，对函数统一管理
 jQuery.Callbacks = function(options){
-	
+	//如果需要，将字符串格式的选项转换为格式化的对象
+	//现在缓存中查找
+	options = typeof options === 'string' ? (optionsCache[options] || createOptions(options)) : jQuery.extend({},options);
+
+	var memory,  //最后触发的函数（非遗忘列表）
+		fired,  //
+		firing,  //
+		firingStart,  //起始值
+		firingLength,  //
+		firingIndex,  //当前触发事件的索引值
+		list = [],  //回调函数列表
+		stack = !options.once && [],  //有once时，为false
+		fire = function(data){
+			memory = options.memory && data;
+			fired = true;
+			firingIndex = firingStart || 0;
+			firingStart = 0;
+			firingLength = list.length;
+			firing = true; //触发进行时
+			for(; list && firingIndex < firingLength; firingIndex++){
+				// 正在执行的回调返回值为false 且 options.stopOnFalse为true，则终止回调队列的执行
+				if(list[firingIndex].apply(data[0],data[1]) === false && options.stopOnFalse){
+					memory = false;
+					break;
+				}
+			}
+			firing = false; //触发结束
+			if(list){
+				// 处理正在执行的回调中执行fireWith的操作;
+				if(stack){
+					if(stack.length){
+						fire(stack.shift());
+					}
+				//当有once时才会走下面
+				//有once时，memory为真时，清空列表,再执行fire时，执行的是空数组
+				}else if(memory){
+					list = [];
+				}else{
+					self.disable();
+				}
+			}
+		},
+		//实际回调方法
+		self = {
+			//添加回调函数到list数组中
+			add: function(){
+				if(list){
+					//先保存当前list的长度
+					var start = list.length;
+					(function add( args ){
+						jQuery.each(args, function(_, arg){//可以一下传多个回调
+							var type = jQuery.type( arg );
+							if(type === "function"){
+								if( !options.unique || !self.has(arg) ){
+									list.push(arg);
+								}
+							}else if( arg && arg.length && type !== 'string' ){
+								//如果是数组，递归调用
+								add(arg);
+							}
+						});
+					})(arguments);
+					// 正在执行的回调执行了add操作，则更新firingLength
+					if(firing){
+						firingLength = list.length;
+					}else if (memory){ //第一次为undefined，第二次才开始真正判断
+						firingStart = start;
+						fire( memory );//当callbacks()中有memory时,add()会自动触发fire
+					}
+				}
+				return this;
+			},
+			//从列表中移除回调函数
+			remove: function(){
+				if(list){
+					jQuery.each(arguments, function(_, arg){
+						var index;
+						while( (index = jQuery.inArray(arg, list, index) ) > -1){
+							list.splice(index, 1);
+
+							if(firing){
+								if(index <= firingLength){
+									firingLength--;
+								}
+								if(index <= firingIndex){
+									firingIndex--;
+								}
+							}
+						}
+					});
+				}
+				return this;
+			},
+			//检查给定的回调函数是否在列表中。
+			//如果没有给出参数，列表中是否有值。
+			has: function(fn){
+				return fn ? jQuery.inArray( fn, list ) > -1 : !!( list && list.length );
+			},
+			empty: function(){//清空整个数组
+				list = [];
+				firingLength = 0;
+				return this;
+			},
+			disable: function(){ //全部锁定
+				list = stack = memory = undefined;
+				return this;
+			},
+			disabled: function(){  
+				return !list;
+			},
+			lock: function(){
+				stack = undefined;
+				if(!memory){ //如果没有memory，禁止所有后续执行，如果有memory，只禁止后续fire触发事件
+					self.disable();
+				}
+				return this;
+			},
+			locked: function(){
+				return !stack;
+			},
+			fireWith: function(context, args){
+				//第一次执行时，fired为undefined,所以能执行
+				//第二次执行时，fired为true,要判断stack，若有once，stack为false，不执行
+				if(list && (!fired || stack)){
+					args = args || [];
+					args = [ context, args.slice ? args.slice() : args];
+					if(firing){ //如果在触发进行中
+						stack.push(args); //就把事件放入堆里
+					}else{
+						firs(args);
+					}
+				}
+			},
+			fire: function(){
+				self.fireWith(this, arguments);
+				return this;
+			},
+			fired: function(){
+				return !!fired;
+			}
+		};
+	return self;
 }
 
 
 
 
 
+jQuery.extend({
+	
+});
+
+
+jQuery.fn.extend({
+	attr: function(elem, name, value){
+		var hooks, ret, nType = elem.nodeType;
+
+		if(!elem || nType === 3 || nType === 8 || nType === 2){
+			return;
+		}
+
+		if(typeof elem.getAttribute === core_strundefined){//如果getAttributes不支持
+			return jQuery.prop(elem, name, value);
+		}
+
+		if(nType !== 1 || !jQuery.isXMLDoc(elem)){
+			name = name.toLowerCase();
+		}
+	},
 
 
 
 
+
+	attrHooks: {
+		type: {
+
+		}
+	}
+
+
+
+
+
+
+
+});
 
 
 
@@ -837,9 +1066,75 @@ jQuery.Callbacks = function(options){
 // 		ret;
 // }
 
+var isSimple = /^.[^:#\[\.,]*$/,
+	rparentsprev = /^(?:parents|prev(?:Until|All))/,
+	rneedsContext = jQuery.expr.match.needsContext,
+	// methods guaranteed to produce a unique set when starting from a unique set
+	guaranteedUnique = {
+		children: true,
+		contents: true,
+		next: true,
+		prev: true
+	};
+
+jQuery.fn.extend({
+	has: function(target){
+		var targets = jQuery(target, this),
+			l = targets.length;
+
+		return this.filter(function(){
+			var i = 0;
+			for(; i < l;i++){
+				if(jQuery.contains(this, targets[i])){
+					return true;
+				}
+			}			
+		});
+	},
+	not: function(selector){
+		return this.pushStack( winnow(this, selector || [], true) );
+	},
+	filter: function(selector){
+		return this.pushStack( winnow(this, selector || [], false) );
+	},
+	is: function(selector){
+		return !!winnow(this,
+			typeof selector === 'string' && rneedsContext.test(selector) ? 
+				jQuery(selector) : selector || [],
+			false
+		).length;
+	},
 
 
 
+})
+//过滤器函数
+function winnow( elements, qualifier, not){
+	//如果qualifer是函数，则判断函数对每一项的执行结果与not的比较
+	if(jQuery.isFunction(qualifier)){
+		return jQuery.grep( elements, function(elem, i){
+			return !!qualifier.call(elem, i, elem) !== not;
+		});
+	}	
+
+	if(qualifier.nodeType){
+		return jQuery.grep(elements, function(elem){
+			return (elem === qualifier) !== not;
+		});
+	}
+
+	if(typeof qualifier === 'string'){
+		if(isSimple.test(qualifier)){//匹配.box div  #div :odd ul li等,不匹配div:odd ul #li ui[title='hello']
+			return jQuery.filter( qualifier, elements, not);
+		}
+
+		qualifier = jQuery.filter(qualifier, elements);
+	}
+
+	return jQuery.grep(elements, function(elem){
+		return ( core_indexOf.call(qualifier, elem) >= 0 ) !== not;
+	});
+}
 
 
 
