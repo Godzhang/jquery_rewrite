@@ -259,6 +259,7 @@ jQuery.extend = jQuery.fn.extend = function(){
 	}
 
 	// target既不是对象也不是函数则把target设置为空对象。
+	// 处理奇怪的情况，比如 jQuery.extend( 'hello' , {nick: 'casper})~~
 	if(typeof target !== 'object' && !jQuery.isFunction(target)){
 		target = {};
 	}
@@ -278,7 +279,7 @@ jQuery.extend = jQuery.fn.extend = function(){
 				// 得到被扩展对象的值
 				copy = options[name];
 			
-				if(target === copy){ 
+				if(target === copy){ // 防止自引用 ?#?
 					continue;
 				}
 
@@ -826,6 +827,41 @@ function isArraylike(obj){//判断数组,类数组,或者jq对象特殊json
 }
 
 rootjQuery = jQuery(document);
+//sizzle选择器，暂时不写
+(function(window, undefined){
+})(window);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 var optionsCache = {};  //?#?这个缓存对象好像没有存值啊
 //把字符串转换为对象存储在缓存中
@@ -984,12 +1020,13 @@ jQuery.Callbacks = function(options){
 	return self;
 }
 
-
-
-
-
 jQuery.extend({
-	
+	Deferred: function( func ){
+		//一个映射数组
+		var tuples = [
+
+		],
+	},	
 });
 
 
@@ -1009,23 +1046,11 @@ jQuery.fn.extend({
 			name = name.toLowerCase();
 		}
 	},
-
-
-
-
-
 	attrHooks: {
 		type: {
 
 		}
 	}
-
-
-
-
-
-
-
 });
 
 
@@ -1136,8 +1161,34 @@ function winnow( elements, qualifier, not){
 	});
 }
 
+function isHidden(elem, el){ //p6135
 
+}
 
+function getStyles(elem){
+
+}
+
+function showHide(elements, show){
+
+}
+
+jQuery.fn.extend({
+	css: function(name, value){
+		return jQuery.access(this, function(elem, name, value){
+
+		}, name, value, arguments.length > 1);
+	},
+	show: function(){
+		return 
+	},
+	hide: function(){
+
+	},
+	toggle: function(state){
+
+	}
+});
 
 
 
