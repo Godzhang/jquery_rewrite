@@ -1029,33 +1029,244 @@ jQuery.extend({
 	},	
 });
 
+var nodeHook, boolHook,
+	rclass = /[\t\r\n\f]/g,
+	rreturn = /\r/g,
+	rfocusable = /^(?:input|select|textarea|button)$/i;
 
-jQuery.fn.extend({
-	attr: function(elem, name, value){
-		var hooks, ret, nType = elem.nodeType;
+jQuery.fn.extend({//?#?
+	attr: function(name, value){
+		return jQuery.access(this, jQuery.attr, name, value, arguments.length > 1);
+	},
+	removeAttr: function(name){
+		return this.each(function(){
+			jQuery.removeAttr(this, name);
+		});
+	},
+	prop: function(name, value){
+		return jQuery.access(this, jQuery.prop, name, value, arguments.length > 1);
+	},
+	removeProp: function(name){
+		return this.each(function(){
+			delete this[jQuery.propFix[name] || name];
+		})
+	},
+	addClass: function(value){
 
-		if(!elem || nType === 3 || nType === 8 || nType === 2){
+	},
+	removeClass: function(value){
+
+	},
+	toggleClass: function(value, stateVal){
+
+	},
+	hasClass: function(selector){
+
+	},
+	val: function(value){
+		var hooks, ret, isFunction, elem = this[0];
+
+		if(!arguments.length){ //获取value值
+			if(elem){
+				//elem.type: radio checkbox textarea select-one
+				hooks = jQuery.valHooks[elem.type] || jQuery.valHooks[elem.nodeName.toLowerCase()];
+
+				if(hooks && 'get' in hooks && (ret = hooks.get(elem, "value")) !== undefined){
+					return ret;
+				}
+
+				ret = elem.value;
+
+				return typeof ret === "string" ? 
+					ret.replace(rreturn, "") :
+					ret == null ? "" : ret;
+			}
 			return;
 		}
 
-		if(typeof elem.getAttribute === core_strundefined){//如果getAttributes不支持
-			return jQuery.prop(elem, name, value);
-		}
+		//设置值
+		isFunction = jQuery.isFunction(value);
 
-		if(nType !== 1 || !jQuery.isXMLDoc(elem)){
-			name = name.toLowerCase();
-		}
-	},
-	attrHooks: {
-		type: {
+		return this.each(function(i){
+			var val;
 
-		}
+			if(this.nodeType !== 1){
+				return;
+			}
+
+			if(isFunction){
+				val = value.call( this, i, jQuery(this).val() );
+			}else{
+				val = value;
+			}
+
+			if(val == null){
+				val = "";
+			}else if(typeof val === 'number'){
+				val += "";  //转换成字符串
+			}else if(jQuery.isArray(val)){
+				val = jQuery.map(val, function(value){
+					return val == null ? "" : value + "";
+				});
+			};
+
+			hooks = jQuery.valHooks[this.type] || jQuery.valHooks[this.nodeName.toLowerCase()];
+			//如果set返回未定义，则正常设置。
+			if(!hooks || !("set" in hooks) || hooks.set(this, val, "value") === undefined){
+				this.value = val;
+			}
+		});
 	}
 });
 
 
+jQuery.extend({
+	valHooks: {
+		option: {
+			get: function(elem){
+				var val = elem.attributes.value; //获取属性集合中的value值
+				//specified 属性返回 true，如果已规定某个属性。
+				//如果已创建该属性但尚未添加到元素中，也会返回 true。
+				//否则返回 false。
+				return !val || val.specified ? elem.value : elem.text; //option分为value和text两个值
+			}
+		},
+		select: {
+			get: function(elem){
+				var value, option,
+					options = elem.options, //option集合
+					index = elem.selectedIndex,
+					//单选：select-one 多选：select-multiple
+					one = elem.type === "select-one" || index < 0,
+					values = one ? null : [],
+					max = one ? index + 1 : options.length,
+					i = index < 0 ?
+						max : 
+						one ? index : 0;
 
+					for( ; i < max; i++){
+						option = options[i];
 
+						if( (option.selected || i === index) &&
+							(jQuery.support.optDisabled ? !option.disabled : option.getAttribute("disabled") === null ) &&
+							(!option.parentNode.disabled || !jQuery.nodeName(option.parentNode, "optgroup"))){
+
+							value = jQuery(option).val();
+
+							if(one){
+								return value;
+							}
+
+							values.push(value);
+						}
+					}
+				return values;
+			},
+			set: function(elem, value){
+				var optionSet, option,
+					options = elem.options,
+					values = jQuery.makeArray( value ),
+					i = options.length;
+
+				while(i--){
+					option = options[i];
+					if( (option.selected = jQuery.inArray(jQuery(option).val(),values) >= 0) ){
+						optionSet = true;
+					}
+				}
+
+				if(!optionSet){
+					elem.selectedIndex = -1;
+				}
+
+				return values;
+			}
+		}
+	},
+	attr: function(elem, name, value){
+		
+	},
+	removeAttr: function(elem, value){
+
+	},
+	attrHooks: {//把input设置为type="radio"
+		type: {
+			set: function(elem, value){
+				if(!jQuery.support.radioValue && value === 'radio' && jQuery.nodeName(elem, 'input')){
+					//IE9-浏览器中，将input标签更改类型（type）为radio类型以后，value属性可能出现异常
+					//IE6-9设置完type后恢复value属性（attr）
+					var val = elem.value;
+					elem.setAttribute('type', value);
+					if(val){
+						elem.value = val;
+					}
+					return value;
+				}
+			}
+		}
+	},
+	propFix: {
+		"for": "htmlFor",
+		"class": "className"
+	},
+	prop: function(elem, name, value){
+
+	},
+	propHooks: {
+		tabIndex: {//一个焦点顺序的属性
+			get: function(elem){
+				return elem.hasAttribute("tabindex") || rfocusable.test(elem.nodeName) || elem.href ?
+					elem.tabIndex : -1;
+			}
+		}
+	}
+});
+
+// Support: IE9+
+//selectedIndex 属性可设置或返回下拉列表中被选选项的索引号
+//经测试，只在IE下起作用,暂时不知道作用
+if( !jQuery.support.optSelected ){
+	jQuery.propHooks.selected = {
+		get: function(elem){
+			var parent = elem.parentNode;
+			if(parent && parent.parentNode){
+				parent.parentNode.selectedIndex;
+			}
+			return null;
+		}
+	}
+}
+
+jQuery.each([
+	"tabIndex",
+	"readOnly",
+	"maxLength",
+	"cellSpacing",
+	"cellPadding",
+	"rowSpan",
+	"colSpan",
+	"useMap",
+	"frameBorder",
+	"contentEditable"
+],function(){
+	jQuery.propFix[this.toLowerCase()] = this;
+})
+
+jQuery.each(['radio','checkbox'],function(){
+	jQuery.valHooks[this] = {
+		set: function(elem, value){
+			if(jQuery.isArray(value)){
+				return (elem.checked = jQuery.inArray(jQuery(elem).val(), value) >= 0);
+			}
+		}
+	};
+	if(!jQuery.support.checkOn){
+		jQuery.valHooks[this].get = function(elem){
+			// Support: Webkit
+			return elem.getAttribute("value") === null ? "on" : elem.value;
+		}
+	}
+});
 
 
 
