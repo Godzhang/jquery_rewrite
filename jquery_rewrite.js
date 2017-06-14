@@ -64,6 +64,9 @@ var data_user, data_priv,
 	rbrace = /(?:\{[\s\S]*\}|\[[\s\S]*\])$/,
 	rmultiDash = /([A-Z])/g;
 
+data_user = new Data(); //?#?
+data_priv = new Data();
+
 jQuery.fn = jQuery.prototype = {
 	jquery: core_version,
 
@@ -1034,34 +1037,139 @@ var nodeHook, boolHook,
 	rreturn = /\r/g,
 	rfocusable = /^(?:input|select|textarea|button)$/i;
 
-jQuery.fn.extend({//?#?
-	attr: function(name, value){
+jQuery.fn.extend({
+	attr: function(name, value){//?#?
 		return jQuery.access(this, jQuery.attr, name, value, arguments.length > 1);
 	},
-	removeAttr: function(name){
+	removeAttr: function(name){//?#?
 		return this.each(function(){
 			jQuery.removeAttr(this, name);
 		});
 	},
-	prop: function(name, value){
+	prop: function(name, value){//?#?
 		return jQuery.access(this, jQuery.prop, name, value, arguments.length > 1);
 	},
-	removeProp: function(name){
+	removeProp: function(name){//?#?
 		return this.each(function(){
 			delete this[jQuery.propFix[name] || name];
 		})
 	},
 	addClass: function(value){
+		var classes, elem, cur, clazz j,
+			i = 0,
+			len = this.length,
+			proceed = typeof value === 'string' && value;
 
+		//处理函数
+		if(jQuery.isFunction(value)){
+			return this.each(function(j){
+				jQuery(this).addClass(value.call(this, j, this.className));
+			});
+		}
+
+		//处理字符串
+		if(proceed){
+			classes = ( value || "").match( core_rnotwhite ) || [];
+
+			for(; i < len; i++){
+				elem = this[i];
+				cur = elem.nodeType === 1 && (elem.className ? (" " + elem.className + " ").replace(rclass, " ") : " ");
+
+				if(cur){
+					j = 0;
+					while( (clazz = classes[j++]) ){
+						if(cur.indexOf(" " + clazz + " ") < 0){
+							cur += clazz + " ";
+						}
+					}
+					elem.className = jQuery.trim(cur);
+				}
+			}
+		}
+		return this;
 	},
 	removeClass: function(value){
+		var classes, elem, cur, clazz, j,
+			i = 0,
+			len = this.length,
+			proceed = arguments.length === 0 || typeof value === "string" && value;
 
+		if(jQuery.isFunction(value)){
+			return this.each(function(j){
+				jQuery(this).removeClass(value.call(this, j, this.className));
+			});
+		}
+
+		if(proceed){
+			classes = (value || "").match(core_rnotwhite) || [];
+
+			for(; i < len; i++){
+				elem = this[i];
+
+				cur = elem.nodeType === 1 && (elem.className ? (" " + elem.className + " ").replace(rclass, " ") : "");
+
+				if(cur){
+					j = 0;
+					while( (clazz = classes[j++]) ){
+						while( cur.indexOf(" " + clazz + " ") >= 0 ){
+							cur = cur.replace(" " + clazz + " ", " ");
+						}
+					}
+					elem.className = value ? jQuery.trim(cur) : "";
+				}
+			}
+		}
+
+		return this;
 	},
 	toggleClass: function(value, stateVal){
+		var type = typeof value;
 
+		if(typeof stateVal === "boolean" && type === "string"){
+			return stateVal ? this.addClass(value) : this.removeClass(value);
+		}
+
+		if(jQuery.isFunction(value)){
+			return this.each(function(i){
+				jQuery(this).toggleClass(value.call(this, i, this.className, stateVal), stateVal);
+			});
+		}
+
+		return this.each(function(){
+			if(type === "string"){
+				var className,
+					i = 0,
+					self = jQuery(this),
+					classNames = value.match(core_rnotwhite) || [];
+
+				while( (className = classNames[i++]) ){
+					if(self.hasClass(className)){
+						self.removeClass(className);
+					}else{
+						self.addClass(className);
+					}
+				}
+			//如果不写参数，切换所有类
+			}else if(type === core_strundefined || type === "boolean"){
+				if(this.className){
+					data_priv.set(this, "__className__", this.className); //?#?
+				}
+
+				this.className = this.className || value === false ? "" : data_priv.get(this, "__className__") || "";
+			}
+		});
 	},
 	hasClass: function(selector){
+		var className = " " + selector + " ",
+			i = 0,
+			l = this.length;
 
+		for(; i < l; i++){
+			if(this[i].nodeType === 1 && (" " + this[i].className + " ").replace(rclass, " ").indexOf( className ) >0 =){
+				return true;
+			}
+		}
+		return false;
 	},
 	val: function(value){
 		var hooks, ret, isFunction, elem = this[0];
@@ -1125,7 +1233,7 @@ jQuery.extend({
 		option: {
 			get: function(elem){
 				var val = elem.attributes.value; //获取属性集合中的value值
-				//specified 属性返回 true，如果已规定某个属性。
+				//如果已规定某个属性,specified 属性返回 true。
 				//如果已创建该属性但尚未添加到元素中，也会返回 true。
 				//否则返回 false。
 				return !val || val.specified ? elem.value : elem.text; //option分为value和text两个值
