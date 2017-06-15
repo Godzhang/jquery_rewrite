@@ -1,7 +1,15 @@
 (function(window, undefined){
 var rootJQuery,
 	readyList,
-	core_strundefined = typeof undefined;
+	core_strundefined = typeof undefined,
+
+	location = window.location,
+	document = window.document,
+	docElem = document.documentElement,
+
+	_jQuery = window.jQuery,
+	_$ = window.$,
+
 	rquickExpr = /^(?:\s*(<[\w\W]+>)[^>]*|#([\w-]*))$/,//匹配未闭合标签$("<li>hello")或#id值
 	rsingleTag = /^<(\w+)\s*\/?>(?:<\/\1>|)$/,  //匹配独立标签<li><li> 或 <li />
 	rmsPrefix = /^-ms-/,
@@ -9,6 +17,7 @@ var rootJQuery,
 	fcamelCase = function( all, letter ) {
 		return letter.toUpperCase();
 	},
+
 	class2type = {},  //存放检测类型
 	core_deletedIds = [],
 	core_version = "2.0.3",
@@ -23,11 +32,11 @@ var rootJQuery,
 	core_hasOwn = class2type.hasOwnProperty,
 	core_trim = core_version.trim,
 
-
-
 	jQuery = function(selector, context){
 		return new jQuery.fn.init(selector, context, rootJQuery);
 	},
+
+	core_pnum = /[+-]?(?:\d*\.|)\d+(?:[eE][+-]?\d+|)/.source, //?#?
 	core_rnotwhite = /\S+/g,
 	completed = functiono(){
 		document.removeEventListener("DOMContentLoaded", completed, false);
@@ -1038,18 +1047,18 @@ var nodeHook, boolHook,
 	rfocusable = /^(?:input|select|textarea|button)$/i;
 
 jQuery.fn.extend({
-	attr: function(name, value){//?#?
+	attr: function(name, value){
 		return jQuery.access(this, jQuery.attr, name, value, arguments.length > 1);
 	},
-	removeAttr: function(name){//?#?
+	removeAttr: function(name){
 		return this.each(function(){
 			jQuery.removeAttr(this, name);
 		});
 	},
-	prop: function(name, value){//?#?
+	prop: function(name, value){//?#?  实现原理
 		return jQuery.access(this, jQuery.prop, name, value, arguments.length > 1);
 	},
-	removeProp: function(name){//?#?
+	removeProp: function(name){//?#?  实现原理
 		return this.each(function(){
 			delete this[jQuery.propFix[name] || name];
 		})
@@ -1292,10 +1301,61 @@ jQuery.extend({
 		}
 	},
 	attr: function(elem, name, value){
-		
+		var hooks, ret,
+			nType = elem.nodeType;
+
+		//不能设置 文本、注释、属性 节点
+		if( !elem || nType === 3 || nType === 8 || nType === 2){
+			return;
+		}
+
+		if( typeof elem.getAttribute === core_strundefined ){
+			return jQuery.prop(elem, name, value);
+		}
+
+		if(nType !== 1 || !jQuery.isXMLDoc(elem)){
+			name = name.toLowerCase();
+			hooks = jQuery.attrHooks[ name ] || 
+				(jQuery.exper.match.bool.test(name) ? boolHook : nodeHook);
+		}
+
+		if(value !== undefined){
+			if(value == null){
+				jQuery.removeAttr(elem, name);
+			
+			}else if(hooks && "set" in hooks && (ret = hooks.set(elem, value, name)) !== undefined ){
+				return ret;
+			
+			}else{
+				elem.setAttribute(name, value + '');
+				return value;
+			}
+		}else if(hooks && "get" in hooks && (ret = hooks.get(elem, name)) !== null){
+			return ret;
+
+		}else{
+			ret = jQuery.find.attr(elem, name);
+
+			return ret == null ? undefined : ret;
+		}
 	},
 	removeAttr: function(elem, value){
+		var name, propName,
+			i = 0,
+			attrNames = value && value.match(core_rnotwhite);
 
+		if(attrNames && elem.nodeType === 1){
+
+			while( (name = attrNames[i++]) ){
+				propName = jQuery.propFix[ name ] || name;
+
+				if(jQuery.expr.match.bool.test(name)){
+					elem[ propName ] = false;
+				}
+
+				elem.removeAttribute( name );
+			}
+		}	
 	},
 	attrHooks: {//把input设置为type="radio"
 		type: {
@@ -1318,7 +1378,29 @@ jQuery.extend({
 		"class": "className"
 	},
 	prop: function(elem, name, value){
+		var ret, hooks, notxml,
+			nType = elem.nodeType;
 
+		if( !elem || nType === 3 || nType === 8 || nType === 2){
+			return;
+		}
+
+		notxml = nType !== 1 || !jQuery.isXMLDoc(elem);
+
+		if(notxml){
+			name = jQuery.propFix[ name ] || name;
+			hooks = jQuery.propHooks[ name ];
+		}
+
+		if(value !== undefined){
+			return hooks && "set" in hooks && (ret = hooks.set(elem, value, name)) !== undefined ?
+				ret : 
+				(elem[name] = value);
+		}else{
+			return hooks && "get" in hooks && (ret = hooks.get(elem, name)) !== null ?
+				ret : 
+				elem[name];
+		}
 	},
 	propHooks: {
 		tabIndex: {//一个焦点顺序的属性
@@ -1330,9 +1412,21 @@ jQuery.extend({
 	}
 });
 
+boolHook = {
+	set: function(elem, value, name){
+		if(value === false){
+			jQuery.removeAttr(elem, name);
+		}else{
+			jQuery.setAttribute(name, name);
+		}
+		return name;
+	}
+};
+
+
 // Support: IE9+
 //selectedIndex 属性可设置或返回下拉列表中被选选项的索引号
-//经测试，只在IE下起作用,暂时不知道作用
+//经测试，只在IE下起作用
 if( !jQuery.support.optSelected ){
 	jQuery.propHooks.selected = {
 		get: function(elem){
@@ -1421,7 +1515,7 @@ var isSimple = /^.[^:#\[\.,]*$/,
 		prev: true
 	};
 
-jQuery.fn.extend({
+jQuery.fn.extend({ //?#?
 	has: function(target){
 		var targets = jQuery(target, this),
 			l = targets.length;
