@@ -1470,12 +1470,102 @@ jQuery.each(['radio','checkbox'],function(){
 	}
 });
 
+var rkeyEvent = /^key/,
+	rmouseEvent = /^(?:mouse|contextmenu)|click/,
+	rfocusMorph = /^(?:focusinfocus|focusoutblur)$/,
+	rtypenamespace = /^([^.]*)(?:\.(.+)|)$/;
+
+function returnTrue(){
+	return true;
+}
+
+function returnFalse(){
+	return false;
+}
+
+function safeActiveElement(){
+	try{
+		return document.activeElement;
+	}catch(err){}
+}
+
+jQuery.event = {
+	global: {},
+
+	add: function(elem, types, handler, data, selector){
+		
+	}
+}
 
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+jQuery.fn.extend({
+	on: function(types, selector, data, fn, one){
+
+	},
+	one: function(types, selector, data, fn){
+
+	},
+	off: function(types, selector, fn){
+
+	},
+	trigger: function(type, data){
+
+	},
+	triggerHandler : function(type, data){
+
+	}
+});
 
 
 
@@ -1516,6 +1606,9 @@ var isSimple = /^.[^:#\[\.,]*$/,
 	};
 
 jQuery.fn.extend({ //?#?
+	find: function(selector){
+
+	},
 	has: function(target){
 		var targets = jQuery(target, this),
 			l = targets.length;
@@ -1542,10 +1635,42 @@ jQuery.fn.extend({ //?#?
 			false
 		).length;
 	},
+	closest: function(selectors, context){
+
+	},
+	index: function(elem){
+
+	},
+	add: function(selector, context){
+
+	},
+	addBack: function(selector){
+
+	}
+});
 
 
 
-})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //过滤器函数
 function winnow( elements, qualifier, not){
 	//如果qualifer是函数，则判断函数对每一项的执行结果与not的比较
