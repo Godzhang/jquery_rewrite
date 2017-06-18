@@ -38,7 +38,7 @@ var rootJQuery,
 
 	core_pnum = /[+-]?(?:\d*\.|)\d+(?:[eE][+-]?\d+|)/.source, //?#?
 	core_rnotwhite = /\S+/g,
-	completed = functiono(){
+	completed = function(){
 		document.removeEventListener("DOMContentLoaded", completed, false);
 		window.removeEventListener("load", completed, false);
 		jQuery.ready();
@@ -68,13 +68,6 @@ var rxhtmlTag = /<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>
 
 		_default: [ 0, "", "" ]
 	};
-
-var data_user, data_priv,
-	rbrace = /(?:\{[\s\S]*\}|\[[\s\S]*\])$/,
-	rmultiDash = /([A-Z])/g;
-
-data_user = new Data(); //?#?
-data_priv = new Data();
 
 jQuery.fn = jQuery.prototype = {
 	jquery: core_version,
@@ -1032,13 +1025,449 @@ jQuery.Callbacks = function(options){
 	return self;
 }
 
-jQuery.extend({
-	Deferred: function( func ){
-		//一个映射数组
-		var tuples = [
+// jQuery.extend({  //?#? 异步到底是什么鬼
+// 	Deferred: function( func ){
+// 		//一个映射数组
+// 		var tuples = [
+// 				// action, add listener, listener list, final state
+//                 //resolve,reject,notify用于相应状态的触发(fire),done,fail,progress用于添加相应的回调(add)
+// 				//行为    //回调函数  //回调对象                     //状态
+// 				[ "resolve", "done", jQuery.Callbacks("once memory"), "resolved" ],
+// 				[ "reject", "fail", jQuery.Callbacks("once memory"), "rejected" ],
+// 				[ "notify", "progress", jQuery.Callbacks("memory") ]
+// 			],
 
-		],
-	},	
+
+
+
+// 	},
+// 	when: function(subordinate /* , ...,subordinateN */){
+
+// 	}
+// });
+
+jQuery.support = (function(support){
+	var input = document.createElement("input"),
+		fragment = doucment.createDocumentFragment(),
+		div = document.createElement("div"),
+		select = document.createElement("select"),
+		opt = select.appendChild(document.createElement("option"));
+
+	if( !input.type ){
+		return support;
+	}
+
+	input.type = "checkbox";
+
+	support.checkOn = input.value !== "";//只有老版webkit为false
+
+	support.optSelected = opt.selected;
+
+	support.reliableMarginRight = true;
+	support.boxSizingReliable = true;
+	support.pixelPosition = false;
+
+	input.checked = true;
+	support.noCloneChecked = input.cloneNode(true).checked;
+
+	select.disable = true;
+	support.optDisabled = !opt.disabled;
+
+	input = document.createElement("input");
+	//顺序不能变
+	input.value = "t";
+	input.type = "radio";
+	support.radioValue = input.value === "t";
+
+	input.setAttribute("checked", "t");
+	input.setAttribute("name", "t");
+
+	fragment.appendChild(input);
+
+	support.checkClone = fragment.cloneNode(true).cloneNode(true).lastChild.checked;
+
+	//onfocusin可以冒泡，focus等事件不能冒泡,只有IE支持
+	support.focusinBubbles = "onfocusin" in window;
+	//只在IE下为flase
+	div.style.backgroundClip = "content-box";
+	div.cloneNode( true ).style.backgroundClip = "";
+	support.clearCloneStyle = div.style.backgroundClip === "content-box";
+
+	jQuery(function() {
+		var container, marginDiv,
+			// Support: Firefox, Android 2.3 (Prefixed box-sizing versions).
+			divReset = "padding:0;margin:0;border:0;display:block;-webkit-box-sizing:content-box;-moz-box-sizing:content-box;box-sizing:content-box",
+			body = document.getElementsByTagName("body")[ 0 ];
+
+		if ( !body ) {
+			// Return for frameset docs that don't have a body
+			return;
+		}
+
+		container = document.createElement("div");
+		container.style.cssText = "border:0;width:0;height:0;position:absolute;top:0;left:-9999px;margin-top:1px";
+
+		// Check box-sizing and margin behavior.
+		body.appendChild( container ).appendChild( div );
+		div.innerHTML = "";
+		// Support: Firefox, Android 2.3 (Prefixed box-sizing versions).
+		div.style.cssText = "-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;padding:1px;border:1px;display:block;width:4px;margin-top:1%;position:absolute;top:1%";
+
+		// Workaround failing boxSizing test due to offsetWidth returning wrong value
+		// with some non-1 values of body zoom, ticket #13543
+		jQuery.swap( body, body.style.zoom != null ? { zoom: 1 } : {}, function() {
+			support.boxSizing = div.offsetWidth === 4;
+		});
+
+		// Use window.getComputedStyle because jsdom on node.js will break without it.
+		if ( window.getComputedStyle ) {//node中没有这个属性
+			support.pixelPosition = ( window.getComputedStyle( div, null ) || {} ).top !== "1%";
+			support.boxSizingReliable = ( window.getComputedStyle( div, null ) || { width: "4px" } ).width === "4px";
+
+			// Support: Android 2.3
+			// Check if div with explicit width and no margin-right incorrectly
+			// gets computed margin-right based on width of container. (#3333)
+			// WebKit Bug 13343 - getComputedStyle returns wrong value for margin-right
+			marginDiv = div.appendChild( document.createElement("div") );
+			marginDiv.style.cssText = div.style.cssText = divReset;
+			marginDiv.style.marginRight = marginDiv.style.width = "0";
+			div.style.width = "1px";
+
+			support.reliableMarginRight =
+				!parseFloat( ( window.getComputedStyle( marginDiv, null ) || {} ).marginRight );
+		}
+
+		body.removeChild( container );
+	});
+
+	return support;
+})({});
+
+var data_user, data_priv,
+	rbrace = /(?:\{[\s\S]*\}|\[[\s\S]*\])$/,
+	rmultiDash = /([A-Z])/g;
+
+function Data(){
+	Object.defineProperty( this.cache = {}, 0, { 
+		get: function(){
+			return {};
+		}
+	});//等于this.cache = {0: {}}没有set方法，不能设置，只能获取
+
+	this.expando = jQuery.expando + Math.random();
+}
+
+Data.uid = 1;
+
+Data.accepts = function( owner ){
+	// Accepts only:
+	//  - Node
+	//    - Node.ELEMENT_NODE
+	//    - Node.DOCUMENT_NODE
+	//  - Object
+	//    - Any
+	//元素节点和document节点和其他任何（对象）
+	return owner.nodeType ? owner.nodeType === 1 || owner.nodeType === 9 : true;
+}
+
+Data.prototype = {
+	//分配映射
+	key: function(owner){
+		//不能被分配标识的就返回0
+		if( !Data.accepts(owner)){
+			return 0;
+		}
+
+		var descriptor = {},
+			unlock = owner[ this.expando ];
+		//如果对同一个元素多次操作，只走第一次
+		if( !unlock ){
+			unlock = Data.uid++;// 1
+
+			try {
+				//这个方法防止属性被修改，以防万一
+				descriptor[this.expando] = {value: unlock};
+				Object.defineProperties(owner, descriptor);
+			}catch(e){
+				descriptor[this.expando] = unlock;
+				jQuery.extend(owner, descriptor);
+			}
+		}
+		//如果对同一个元素多次操作，只走第一次,第一次时分配空间
+		if( !this.cache[unlock]){
+			this.cache[unlock] = {};
+		}
+
+		return unlock;		
+	},
+	set: function(owner, data, value){
+		var prop,
+			unlock = this.key(owner),
+			cache = this.cache[ unlock ];
+
+		if(typeof data === "string"){
+			cache[ data ] = value;
+		}else{
+			if(jQuery.isEmptyObject(cache)){
+				jQuery.extend{this.cache[unlock], data};
+			}else{
+				for(prop in data){
+					cache[ prop ] = data[ prop ];
+				}
+			}
+		}
+
+		return cache;
+	},
+	get: function(owner, key){
+		var cache = this.cache[ this.key(owner) ];
+
+		return key === undefined ? cache : cache[key];
+	},
+	//整合set和get方法
+	access: function(owner, key, value){
+		var stored;
+
+		if(key === undefined || ( (key && typeof key === "string") && value === undefined ) ){
+			stored = this.get(owner, key);
+
+			return stored !== undefined ? stored : this.get( owner, jQuery.camelCase(key) );
+		}
+
+		this.set(owner, key, value);
+
+		return value !== undefined ? value : key;
+	},
+	remove: function(owner, key){
+		var i, name, camel,
+			unlock = this.key(owner),
+			cache = this.cache[ unlock ];
+
+		if(key === undefined){
+			this.cache[unlock] = {};
+		}else{
+
+			if(jQuery.isArray(key)){
+
+				name = key.concat(key.map(jQuery.camelCase));
+
+			}else{
+				camel = jQuery.camelCase(key);
+
+				if(key in cache){
+					name = [key, camel];
+				}else{
+					name = camel;
+					name = name in cache ? [name] : ( name.match( core_rnotwhite ) || [] );
+				}
+			}
+
+			i = name.length;
+			while(i--){
+				delete cache[ name[i] ];
+			}
+		}		
+	},
+	hasData: function(owner){
+		return !jQuery.isEmptyObject( this.cache[ owner[this.expando] ] );
+	},
+	discard: function(owner){
+		if( owner[this.expando] ){
+			delete this.cache[ owner[this.expando] ];
+		}
+	}
+}
+
+data_user = new Data(); 
+data_priv = new Data();
+
+jQuery.extend({
+	acceptData: Data.accepts,
+
+	hasData: function(elem){
+		return data_user.hasData( elem ) || data_priv.hasData( elem );
+	},
+	data: function(elem, name, data){
+		return data_user.access(elem, name, data);
+	},
+	removeData: function(elem, data){
+		data_user.remove(elem, data);
+	},
+	_data: function(elem, name, data){
+		return data_priv.access(elem, name, data);
+	},
+	_removeData: function(elem, name){
+		data_priv.remove(elem, name);
+	}
+});
+
+jQuery.fn.extend({
+	data: function(key, value){
+		var attrs, name,
+			elem = this[0],
+			i = 0,
+			data = null;
+		//获取所有值
+		if(key === undefined){
+			if(this.length){
+				data = data_user.get(elem);
+
+				if(elem.nodeType === 1 && !data_priv.get(elem, "hasDataAttrs")){
+					attrs = elem.attributes;
+					//循环，查看有没有data-自定义属性
+					for(; i < attrs.length; i++){
+						name = attrs[i].name;
+
+						if(name.indexOf( "data-" ) == 0){
+							name = jQuery.camelCase(name.slice(5));
+							dataAttr( elem, name, data[name]);
+						}
+					}
+					data_priv.set(elem, "hasDataAttrs", true);
+				}
+			}
+
+			return data;
+		}		
+
+		if(typeof key === "object"){
+			return this.each(function(){
+				data_user.set(this, key);
+			});
+		}
+
+		return jQuery.access(this, function( value ){
+			var data, camelKey = jQuery.camelCase( key );
+
+			if(elem && value === undefined){
+				data = data_user.get(elem, key);
+				if(data !=== undefined){
+					return data;
+				}
+
+				data = data_user.get(elem, camelKey);
+				if(data !== undefined){
+					return data;
+				}
+
+				data = dataAttr(elem, camelKey, undefined);
+				if(data !== undefined){
+					return data;
+				}
+
+				return;
+			}
+
+			this.each(function(){
+				var data = data_user.get(this, camelKey);
+
+				data_user.set(this, camelKey, value);
+
+				if(key.indexOf("-") !== -1 && data !== undefined){
+					data_user.set(this, key, value);
+				}
+			});
+		},null, value, arguments.length > 1, null, true);
+	},
+	removeData: function(key){
+		return this.each(function(){
+			data_user.remove(this, key);
+		})
+	}
+})
+
+function dataAttr(elem, key, data){
+	var name;
+
+	if(data === undefined && elem.nodeType === 1){
+		name = "data-" + key.replace( rmultiDash, "-$1").toLowerCase();
+		data = elem.getAttribute(name);
+
+		if(typeof data === "string"){
+			try {
+				data = data === "true" ? true : 
+					data === "false" ? false : 
+					data === "null" ? null :
+					+data + "" === data ? +data : 
+					rbrace.test(data) ? JSON.parse(data) : data;
+			}catch(e){}
+
+			data_user.set(elem, key, data);
+		}else{
+			data = undefined;
+		}
+	}
+	return data;
+}
+
+jQuery.extend({
+	queue: function(elem, type, data){
+		var queue;
+
+		if(elem){
+			type = ( type || "fx" ) +  "queue";
+			queue = data_priv.get(elem, type);
+
+			if(data){
+				if(!queue || jQuery.isArray(data)){
+					queue = data_priv.access(elem, type, jQuery.makeArray(data));
+				}else{
+					queue.push(data);
+				}
+			}
+			return queue || [];
+		}
+	},
+	dequeue: function(elem, type){
+		type = type || "fx";
+
+		var queue = jQuery.queue(elem, type),
+			startLength = queue.length,
+			fn = queue.shift(),
+			hooks = jQuery._queueHooks(elem, type),
+			next = function(){
+				jQuery.dequeue(elem, type);
+			};
+
+		if(fn === "inprogress"){
+			fn = queue.shift();
+			startLength--;
+		}
+
+		if(fn){
+			if(type === "fx"){
+				queue.unshift("inprogress");
+			}
+
+			delete hooks.stop;
+			fn.call(elem, next, hooks);
+		}
+
+		if(!startLength && hooks){
+			hooks.empty.fire();
+		}
+	},
+	_queueHooks: function(elem, type){
+
+	}
+});
+
+jQuery.fn.extend({
+	queue: function(type, data){
+
+	},
+	dequeue: function(type){
+
+	},
+	dalay: function(time, type){
+
+	},
+	clearQueue: function(type){
+
+	},
+	promise: function(type, obj){
+
+	}
 });
 
 var nodeHook, boolHook,
@@ -1064,7 +1493,7 @@ jQuery.fn.extend({
 		})
 	},
 	addClass: function(value){
-		var classes, elem, cur, clazz j,
+		var classes, elem, cur, clazz, j,
 			i = 0,
 			len = this.length,
 			proceed = typeof value === 'string' && value;
@@ -1174,7 +1603,7 @@ jQuery.fn.extend({
 			l = this.length;
 
 		for(; i < l; i++){
-			if(this[i].nodeType === 1 && (" " + this[i].className + " ").replace(rclass, " ").indexOf( className ) >0 =){
+			if(this[i].nodeType === 1 && (" " + this[i].className + " ").replace(rclass, " ").indexOf( className ) >= 0 ){
 				return true;
 			}
 		}
@@ -1660,15 +2089,79 @@ function winnow( elements, qualifier, not){
 	});
 }
 
-function isHidden(elem, el){ //p6135
+var curCSS, iframe,
+	// swappable if display is none or starts with table except "table", "table-cell", or "table-caption"
+	// see here for display values: https://developer.mozilla.org/en-US/docs/CSS/display
+	rdisplayswap = /^(none|table(?!-c[ea]).+)/,
+	rmargin = /^margin/,
+	rnumsplit = new RegExp( "^(" + core_pnum + ")(.*)$", "i" ),
+	rnumnonpx = new RegExp( "^(" + core_pnum + ")(?!px)[a-z%]+$", "i" ),
+	rrelNum = new RegExp( "^([+-])=(" + core_pnum + ")", "i" ),
+	elemdisplay = { BODY: "block" },
 
+	cssShow = { position: "absolute", visibility: "hidden", display: "block" },
+	cssNormalTransform = {
+		letterSpacing: 0,
+		fontWeight: 400
+	},
+
+	cssExpand = [ "Top", "Right", "Bottom", "Left" ],
+	cssPrefixes = [ "Webkit", "O", "Moz", "ms" ];
+//判断css属性是否存在style中
+function vendorPropName( style, name){
+	if(name in style){
+		return name;
+	}
+
+	var capName = name.charAt(0).toUpperCase() + name.slice(1),
+		origName = name,
+		i = cssPrefixes.length;
+
+	while( i-- ){
+		name = cssPrefixes[i] + capName;
+		if(name in style){
+			return name;
+		}
+	}
+
+	return origName;
 }
 
+function isHidden(elem, el){ 
+	elem = el || elem;
+
+	return jQuery.css(elem, "display") === "none" || !jQuery.contains(elem.ownerDocument, elem);
+}
+//获取当前元素所有最终使用的CSS属性值
 function getStyles(elem){
-
+	return window.getComputedStyle(elem, null);
 }
 
-function showHide(elements, show){
+function showHide(elements, show){ // ?#?
+	var display, elem, hidden,
+		values = [],
+		index = 0,
+		length = elements.length;
+
+	for( ; index < length; index++){
+		elem = elements[ index ];
+		if( !elem.style ){
+			continue;
+		}
+
+
+
+	}
+
+
+
+
+
+
+
+
+
+
 
 }
 
@@ -1754,28 +2247,6 @@ jQuery.fn.extend({
 	}
 });
 
-var curCSS, iframe,
-	// swappable if display is none or starts with table except "table", "table-cell", or "table-caption"
-	// see here for display values: https://developer.mozilla.org/en-US/docs/CSS/display
-	rdisplayswap = /^(none|table(?!-c[ea]).+)/,
-	rmargin = /^margin/,
-	rnumsplit = new RegExp( "^(" + core_pnum + ")(.*)$", "i" ),
-	rnumnonpx = new RegExp( "^(" + core_pnum + ")(?!px)[a-z%]+$", "i" ),
-	rrelNum = new RegExp( "^([+-])=(" + core_pnum + ")", "i" ),
-	elemdisplay = { BODY: "block" },
-
-	cssShow = { position: "absolute", visibility: "hidden", display: "block" },
-	cssNormalTransform = {
-		letterSpacing: 0,
-		fontWeight: 400
-	},
-
-	cssExpand = [ "Top", "Right", "Bottom", "Left" ],
-	cssPrefixes = [ "Webkit", "O", "Moz", "ms" ];
-
-function vendorPropName( style, name){
-	
-}
 
 
 
