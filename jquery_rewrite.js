@@ -1124,10 +1124,6 @@ jQuery.support = (function(support){
 			support.pixelPosition = ( window.getComputedStyle( div, null ) || {} ).top !== "1%";
 			support.boxSizingReliable = ( window.getComputedStyle( div, null ) || { width: "4px" } ).width === "4px";
 
-			// Support: Android 2.3
-			// Check if div with explicit width and no margin-right incorrectly
-			// gets computed margin-right based on width of container. (#3333)
-			// WebKit Bug 13343 - getComputedStyle returns wrong value for margin-right
 			marginDiv = div.appendChild( document.createElement("div") );
 			marginDiv.style.cssText = div.style.cssText = divReset;
 			marginDiv.style.marginRight = marginDiv.style.width = "0";
@@ -1400,7 +1396,7 @@ function dataAttr(elem, key, data){
 	return data;
 }
 
-jQuery.extend({
+jQuery.extend({  //?#?
 	queue: function(elem, type, data){
 		var queue;
 
@@ -1852,7 +1848,6 @@ boolHook = {
 	}
 };
 
-
 // Support: IE9+
 //selectedIndex 属性可设置或返回下拉列表中被选选项的索引号
 //经测试，只在IE下起作用
@@ -1922,7 +1917,24 @@ jQuery.event = {
 	global: {},
 
 	add: function(elem, types, handler, data, selector){
-		
+		var handleObjIn, eventHandle, tmp,
+			events, t, handleObj,
+			special, handlers, type, namespace, origType,
+			elemData = data_priv.get(elem);
+
+		if(!elemData){
+			return;
+		}
+
+		if(handler.handler){
+			handleObjIn = handler;
+			
+		}
+
+
+
+
+
 	}
 }
 
