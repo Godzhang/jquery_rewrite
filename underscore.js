@@ -33,9 +33,11 @@
     nativeCreate       = Object.create;
 
   // Reusable constructor function for prototype setting.
+  //用于原型设置的可重用构造函数
   var Ctor = function(){};
 
   // Create a safe reference to the Underscore object for use below.
+  //为下划线对象创建一个安全引用
   var _ = function(obj) {
     if (obj instanceof _) return obj;
     if (!(this instanceof _)) return new _(obj);
@@ -197,7 +199,7 @@
 
   // **Transform** is an alternative to reduce that transforms `obj` to a new
   // `accumulator` object.
-  _.transform = function(obj, iteratee, accumulator, context) {
+  _.transform = function(obj, iteratee, accumulator, context) {  //?#?不明确，大概会用
     if (accumulator == null) {
       if (_.isArray(obj)) {
         accumulator = [];
