@@ -1402,9 +1402,12 @@ jQuery.extend({  //?#?
 
 		if(elem){
 			type = ( type || "fx" ) +  "queue";
+			//jQuery的队列是以Data为基础的。它是以缓存的形式添加在DOM元素或者Object上的。
+			//第一次进来queue为undefined
 			queue = data_priv.get(elem, type);
 
 			if(data){
+				//如果队列不存在，或者data为数组时
 				if(!queue || jQuery.isArray(data)){
 					queue = data_priv.access(elem, type, jQuery.makeArray(data));
 				}else{
@@ -1431,6 +1434,7 @@ jQuery.extend({  //?#?
 		}
 
 		if(fn){
+			//与第一次animate自动执行有关
 			if(type === "fx"){
 				queue.unshift("inprogress");
 			}
@@ -1444,16 +1448,48 @@ jQuery.extend({  //?#?
 		}
 	},
 	_queueHooks: function(elem, type){
-
+		var key = type + "queueHooks";
+		 //如果data_priv中已经为elem存储了标识为key缓存，则返回它。或者为elem的标识key，设置缓存。
+		return data_priv.get(elem, key) || data_priv.access(elem, key, {
+			//该缓存为一个对象字面量，里面属性empty为Callbacks对象,该延迟对象有被添加了一个方法，
+            // 用来删除elem的type缓存，和key缓存
+			empty: jQuery.Callbacks("once memory").add(function(){
+				data_priv.remove(elem, [type + "queue", key]);
+			});
+		})
 	}
 });
 
 jQuery.fn.extend({
 	queue: function(type, data){
+		var setter = 2;
 
+		if(typeof type !== "string"){
+			data = type;
+			type = "fx";
+			setter--;
+		}		
+
+		if(arguments.length < setter){
+			return jQuery.queue(this[0], type);
+		}
+
+		return data === undefined ? 
+			this : 
+			this.each(function(){
+				var queue = jQuery.queue(this, type, data);
+
+				jQuery._queueHooks(this, type);
+
+				if(type === "fx" && queue[0] != "inprogress"){
+					jQuery.dequeue(this, type);
+				}
+			});
 	},
 	dequeue: function(type){
-
+		return this.each(function(){
+			jQuery.dequeue(this, type);
+		})
 	},
 	dalay: function(time, type){
 
