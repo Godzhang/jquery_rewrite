@@ -62,6 +62,20 @@
   // Internal function that returns an efficient (for current engines) version
   // of the passed-in callback, to be repeatedly applied in other Underscore
   // functions.
+  //就是把调用的context（母对象）显式化。
+  //比如
+  //window.open
+  //比
+  //open
+  //效率稍高。
+  //因为，解释器看到window.open不需要自己去解析open是在哪个母对象执行的，一层层往上追溯损失效率。
+  //现在为了open的简洁，而又不想失去这一点效率，就
+  //var open = optimizeCB(open, window, …)
+  //下面的代码就可以痛快地
+  //open(…)
+  //open(…)
+  //open(…)
+  //了。
   var optimizeCb = function(func, context, argCount) {
     if (context === void 0) return func;
     switch (argCount == null ? 3 : argCount) {
@@ -97,6 +111,7 @@
   };
 
   // An internal function for creating assigner functions.
+  //创建一个内部函数分配器功能
   var createAssigner = function(keysFunc) {
     return function(obj) {
       var length = arguments.length;
@@ -115,6 +130,7 @@
   };
 
   // An internal function for creating a new object that inherits from another.
+  //用于创建从另一个对象继承的新对象的内部函数。
   var baseCreate = function(prototype) {
     if (!_.isObject(prototype)) return {};
     if (nativeCreate) return nativeCreate(prototype);
@@ -199,7 +215,11 @@
 
   // **Transform** is an alternative to reduce that transforms `obj` to a new
   // `accumulator` object.
+<<<<<<< HEAD
   _.transform = function(obj, iteratee, accumulator, context) {  //?#?不明确，大概会用
+=======
+  _.transform = function(obj, iteratee, accumulator, context) {  //biaoqian
+>>>>>>> 0a04e45628debc19dd4c5eda2a577b972e74dad4
     if (accumulator == null) {
       if (_.isArray(obj)) {
         accumulator = [];
