@@ -1420,21 +1420,24 @@ jQuery.extend({  //?#?
 	dequeue: function(elem, type){
 		type = type || "fx";
 
-		var queue = jQuery.queue(elem, type),
-			startLength = queue.length,
-			fn = queue.shift(),
-			hooks = jQuery._queueHooks(elem, type),
-			next = function(){
+		var queue = jQuery.queue(elem, type),//获取elem下type队列
+			startLength = queue.length,//队列的长度
+			fn = queue.shift(),//让队列第一个队员出队
+			hooks = jQuery._queueHooks(elem, type),//执行_queueHooks，添加一个回调对象。
+			next = function(){//设置next方法。该方法是再执行下一个队员的出栈
 				jQuery.dequeue(elem, type);
 			};
 
+		//如果fn是"inprogress"则继续取下一个函数执行。对应startLength也--。这里主要是为了考
+    	// 虑animate的实现
 		if(fn === "inprogress"){
 			fn = queue.shift();
 			startLength--;
 		}
 
 		if(fn){
-			//与第一次animate自动执行有关
+			//如果是默认的type，则往队列中添加一个"inprogress"字符串。
+        	// 用于防止fx队列自动出栈。
 			if(type === "fx"){
 				queue.unshift("inprogress");
 			}
@@ -1442,7 +1445,8 @@ jQuery.extend({  //?#?
 			delete hooks.stop;
 			fn.call(elem, next, hooks);
 		}
-
+		//如果队员已经出栈完并且hooks被成功设置。
+		//触发Callbacks的fire，Callbacks中所有的方法执行。这里就是删除相关队列。
 		if(!startLength && hooks){
 			hooks.empty.fire();
 		}
@@ -1491,13 +1495,24 @@ jQuery.fn.extend({
 			jQuery.dequeue(this, type);
 		})
 	},
-	dalay: function(time, type){
+	delay: function(time, type){
+		//time可以是具体的毫秒数，也可以为jQuery.fx.speeds中定义的slow，fast，_default
+		time = jQuery.fx ? jQuery.fx.speeds[time] || time : time;
+		type = type || "fx";
 
+		//往type队列中添加一个定时器。等过指定的时间后再去执行next函数。进行下一个队员出栈。
+		return this.queue(type, function(next, hooks){
+			var timeout = setTimeout(next, time);
+			//为hooks添加了一个停止定时器的接口。用于停止该延迟，注意只能在Timeout触发之前停止。
+			hooks.stop = function(){
+				clearTimeout( timeout );
+			}
+		});
 	},
 	clearQueue: function(type){
-
+		return this.queue(type || "fx", []);
 	},
-	promise: function(type, obj){
+	promise: function(type, obj){ //?#?
 
 	}
 });
@@ -1951,25 +1966,231 @@ function safeActiveElement(){
 
 jQuery.event = {
 	global: {},
-
-	add: function(elem, types, handler, data, selector){
+	//?#?						   //fn
+	add: function(elem, types, handler, data, selector){//将回调函数插入响应数组
 		var handleObjIn, eventHandle, tmp,
 			events, t, handleObj,
-			special, handlers, type, namespace, origType,
+			special, handlers, type, namespaces, origType,
 			elemData = data_priv.get(elem);
 
-		if(!elemData){
+		if( !elemData ){//当前元素不支持附加扩展属性
 			return;
 		}
 
-		if(handler.handler){
+		if(handler.handler){//自定义监听对象的情况
 			handleObjIn = handler;
-			
+			handler = handleObjIn.handler;
+			selector = handleObjIn.selector;
 		}
 
+		if(!handler.guid){//确定有唯一的id
+			handler.guid = jQuery.guid++;
+		}
 
+		if( !(events = elemData.events) ){//如果事件缓存对象不存在，则初始化.用于存储事件对象
+			events = elemData.events = {};
+		}
 
+		if( !(eventHandle = elemData.handle) ){//取出或初始化主监听函数
+			eventHandle = elemData.handle = function(e){//丢弃jQuery.event.trigger()第二个事件和页面关闭后触发的事件
+				return typeof jQuery !== core_strundefined && (!e || jQuery.event.triggered !== e.type) ?
+					jQuery.event.dispatch.apply(eventHandle.elem, arguments) : 
+					undefined;
+			}
+			eventHandle.elem = elem;
+		}
 
+		types = ( types || "").match(core_rnotwhite) || [""];
+		t = types.length;
+		while(t--){
+			tmp = rtypenamespace.exec(types[t]) || [];//分解事件
+			type = origType = tmp[1];//单个事件类型
+			namespaces = (tmp[2] || "").split(".").sort();//分解命名空间数组
+
+			if(!type){//忽略只有命名空间的情况
+				continue;
+			}
+
+			special = jQuery.event.special[type] || {};//尝试获取当前事件类型对应的修正对象
+
+			type = ( selector ? special.delegateType : special.bindType) || type;//修正type，如果有selector修正为代理事件，或者支持更好的类型
+
+			special = jQuery.event.special[type] || {};//type可能已经改变，所以尝试再次获取修正对象
+
+			handleObj = jQuery.extend({//把监听函数封装成监听对象
+				type: type,//修正后的事件类型
+				origType: origType,//单个原始事件类型
+				data: data,//传入的附加对象
+				handler: handler,//监听函数
+				guid: handler.guid,//函数id
+				selector: selector,//代理绑定时的过滤选择器
+				needsContext: selector && jQuery.exper.match.needsContext.test(selector),
+				namespaces: namespaces.join(".")//原始命名空间
+			},handleObjIn);
+
+			if( !(handlers = events[ type ])){//第一次绑定该类型事件时，初始化监听对象数组
+				handlers = events[ type ] = [];
+				handlers.delegateType = 0;//下一个代理监听对象的插入位置
+				
+				if(!special.setup || special.setup.call(elem, data, namespaces, eventHandle) === false){//优先使用修正对象的修正方法绑定主监听函数
+					if(elem.addEventListener){
+						elem.addEventListener(type, eventHandle, false);
+					}
+				}
+			}
+
+			//将监听对象插入对象数组
+			if(special.add){//修正对象有修正方法add，用add
+				special.add.call(elem, handleObj);
+
+				if(!handleObj.handler.guid){
+					handleObj.handler.guid = handler.guid;
+				}
+			}
+
+			if(selector){//将代理监听对象插入到指定位置
+				handlers.splice(handlers.delegateCount++, 0, handleObj);
+			}else{//非代理的插入末尾
+				handlers.push(handleObj);
+			}
+			jQuery.event.global[ type ] = true;//记录绑定过的事件类型
+		}
+
+		elem = null;
+	},
+	remove: function(elem, types, handler, selector, mappedTypes){
+
+	},
+	trigger: function(event, data, elem, onlyHandlers){
+
+	},
+	dispatch: function(event){
+
+	},
+	handlers: function(event, handlers){
+
+	},
+	props: "altKey bubbles cancelable ctrlKey currentTarget eventPhase metaKey relatedTarget shiftKey target timeStamp view which".split(" "),
+
+	fixHooks: {},
+
+	keyHooks: {
+		props: "char charCode key keyCode".split(" "),
+		filter: function(event, original){
+
+			if(event.which == null){
+				event.which = original.charCode != null ? original.charCode : original.keyCode;
+			}
+
+			return event;
+		}
+	},
+	mouseHooks: {
+		props: "button buttons clientX clientY offsetX offsetY pageX pageY screenX screenY toElement".split(" "),
+		filter: function(event, original){
+			var eventDoc, doc, body,
+				button = original.button;
+
+			if(event.pageX == null && original.clientX != null){
+				eventDoc = event.target.ownerDocument || document;
+				doc = eventDoc.documentElement;
+				body = eventDoc.body;
+
+				//clientLeft: 左边框和左滚动条宽度
+				event.pageX = original.clientX + (doc && doc.scrollLeft || body && body.scrollLeft || 0) - (doc && doc.clientLeft || body && body.clientLeft || 0);
+				event.pageY = original.clientY + (doc && doc.scrollTop  || body && body.scrollTop  || 0) - (doc && doc.clientTop  || body && body.clientTop  || 0);
+			}
+
+			if( !event.which && button !== undefined ){
+				//如果i & j不等于0，true ?#?
+				event.which = ( button & 1 ? 1 : (button & 2 ? 3 : (button & 4 ? 2 : 0) ) );
+			}
+
+			return event;
+		}
+	},
+	fix: function(event){//event可以为jQuery对象或者原生事件对象,fix()复制事件对象属性，并修正特殊的
+		if(event[jQuery.expando]){ //判断是否为jQuery事件对象
+			return event;
+		}
+
+		var i, prop, copy,
+			type = event.type,
+			originalEvent = event, //存放原生对象
+			//用于存放键盘和鼠标事件的不兼容属性，fixhooks初始值为空对象
+			fixHook = this.fixHooks[ type ];
+
+		if(!fixHook){
+			this.fixHooks[ type ] = fixHook = 
+				rmouseEvent.test(type) ? this.mouseHooks : 
+				rkeyEvent.test(type) ? this.keyHooks : 
+				{};
+		}
+
+		copy = fixHook.props ? this.props.concat(fixHook.props) : this.props;//存放所有属性的副本
+
+		event = new jQuery.Event( originalEvent );//创建jQuery事件对象
+
+		i = copy.length;
+		
+		while(i--){//把原生属性和修正后的不兼容的属性复制到jQuery事件对象中
+			prop = copy[i];
+			event[prop] = originalEvent[ prop ];
+		}
+
+		if(!event.target){
+			event.target = document;
+		}
+		//修正Safari 6.0+, Chrome < 28中event.target为文本节点的情况
+		if(event.target.nodeType === 3){
+			event.target = event.target.parentNode;
+		}
+		//修正鼠标事件和键盘事件的专属属性；键盘的按键所对应的编码，和鼠标的clientX、鼠标编码
+		return fixHook.filter ? fixHook.filter(event, originalEvent) : event;
+	},
+	special: {
+		load: {
+			//防止冒泡
+			noBubble: true
+		},
+		focus: {
+			trigger: function(){
+				if(this !== safeActiveElement() && this.focus){
+					this.focus();
+					return false;
+				}
+			},
+			delegateType: "focusin"
+		},
+		blur: {
+			trigger: function(){
+				if(this === safeActiveElement() && this.blur){
+					this.blur();
+					return false;
+				}
+			},
+			delegateType: "focusout"
+		},
+		click: {
+			trigger: function(){
+				if(this.type === "checkbox" && this.click && jQuery.nodeName(this, "input")){
+					this.click();
+					return false;
+				}
+			},
+			_default: function(event){
+				return jQuery.nodeName(event.target, "a");
+			}
+		},
+		beforeunload: {
+			postDispatch: function(event){
+				if(event.result !== undefined){
+					event.originalEvent.returnValue = event.result;
+				}
+			}
+		}
+	},
+	simulate: function(type, elem, event, bubble){
 
 	}
 }
@@ -1980,57 +2201,188 @@ jQuery.removeEvent = function(elem, type, handle){
 	}
 }
 
-jQuery.Event = function(src, props){
+jQuery.Event = function(src, props){//src可以是原生事件类型、jquery事件类型、自定义事件类型、原生事件对象
+	//允许不用new关键字实例化jquery的事件对象
+	if(!(this instanceof jQuery.Event)){
+		return new jQuery.Event(src, props);
+	}
 
+	//事件对象
+	if(src && src.type){//如果是原生事件对象或jquery事件类型
+		this.originalEvent = src;//保存原生事件对象 
+		this.type = src.type;//保存事件类型
+	
+		//是否被更底层的事件阻止默认行为
+		//event.defaultPrevented : 表明当前事件的默认动作是否被取消,也就是是否执行了 event.preventDefault()方法.
+		//src.getPreventDefault是老版方法，等同于上面那个
+		this.isDefaultPrevented = ( src.defaultPrevented || 
+			src.getPreventDefault && src.getPreventDefault() ) ? returnTrue : returnFalse;
+
+	//事件类型
+	}else{//原生事件类型、自定义事件类型
+		this.type = src;
+	}
+
+	//如果传入了自定义的props对象，将其复制到jQuery.Event对象上
+	if(props){
+		jQuery.extend(this, props);
+	}
+	//加时间戳 
+	this.timeStamp = src && src.timeStamp || jQuery.now();
+	//jQuery.expando是页面中每一个jQuery副本唯一的标志。此属性来判断当前事件对象是否为jQuery事件对象
+	this[jQuery.expando] = true;
 }
 
+//jQuery.Event以DOM3级事件为基础
+jQuery.Event.prototype = {
+	isDefaultPrevented: returnFalse,//是否已经阻止默认行为
+	isPropagationStopped: returnFalse,//是否已经阻止事件传播
+	isImmediatePropagationStopped: returnFalse,//是否已经阻止事件执行和事件传播
 
+	preventDefault: function(){
+		var e = this.originalEvent;
 
+		this.isDefaultPrevented = returnTrue;
+
+		if(e && e.preventDefault){
+			e.preventDefault();
+		}
+	},
+	stopPropagation: function(){
+		var e = this.originalEvent;
+
+		this.isPropagationStopped = returnTrue;
+
+		if(e && e.stopPropagation){
+			e.stopPropagation();
+		}
+	},
+	stopImmediatePropagation: function(){
+		this.isImmediatePropagationStopped = returnTrue;
+		this.stopPropagation();
+	}
+};
+
+//修正事件的代码。
+jQuery.each({
+	mouseenter: "mouseover",
+	mouseleave: "mouseout"
+}, function(orig, fix){
+	jQuery.event.special[orig] = {
+		delegateType: fix,
+		bindType: fix,
+
+		handle: function(event){
+			var ret,
+				target = this,
+				related = event.relatedTarget,
+				handleObj = event.handleObj;
+
+			if(!related || (related !== target && !jQuery.contains(target, related))){
+				event.type = handleObj.origType;
+				ret = handleObj.handler.apply(this, arguments);
+				event.type = fix;
+			}
+			return ret;
+		}
+	}
+});
+
+if( !jQuery.support.focusinBubbles){
+	jQuery.each({focus: "focusin", blue: "focusout"}, function(orig, fix){
+		var attaches = 0,
+			handler = function(event){
+				jQuery.event.simulate(fix, event.target, jQuery.event.fix(event), true);
+			}
+
+		jQuery.event.special[fix] = {
+			setup: function(){
+				if(attaches++ === 0){
+					document.addEventListener(orig, handler, true);
+				}
+			},
+			teardown: function(){
+				if(--attaches === 0){
+					document.removeEventListener(orig, handler, true);
+				}
+			}
+		}
+	});
+}
 
 jQuery.fn.extend({
 	on: function(types, selector, data, fn, one){
+		var origFn, type;
 
+		//$(document).on({'click': function(){console.log(1);},'mouseenter': function(){console.log(2);}},'button');
+		if(typeof types === "object"){
+			// ( types-Object, selector, data )
+			if(typeof selector !== "string"){
+				// ( types-Object, data )
+				data = data || selector;
+				selector = undefined;
+			}
+			for(type in types){
+				this.on(type, selector, data, types[type], one);
+			}
+			return this;
+		}
+
+		if(data == null && fn == null){
+			//(types, fn)
+			fn = selector;
+			data = selector = undefined;
+		}else if( fn == null ){
+			if(typeof selector === "string"){
+				//(types, selector, fn)
+				fn = data;
+				data = undefined;
+			}else{
+				//(types, data, fn)
+				fn = data;
+				data = selector;
+				selector = undefined;
+			}
+		}
+
+		if(fn === false){
+			fn = returnFalse;
+		}else if(!fn){
+			return this;
+		}
+
+		if(one === 1){ //?#?
+			origFn = fn;
+			fn = function(event){
+				jQuery().off(event);
+				return origFn.apply(this, arguments);
+			};
+
+			fn.guid = origFn.guid || (origFn.guid = jQuery.guid++);
+		}
+
+		return this.each(function(){
+			jQuery.event.add(this, types, fn, data, selector);
+		});
 	},
 	one: function(types, selector, data, fn){
-
+		return this.on(types, selector, data, fn, 1);
 	},
 	off: function(types, selector, fn){
 
 	},
 	trigger: function(type, data){
-
+		return this.each(function(){
+			jQuery.event.trigger(type, data, this);
+		});
 	},
 	triggerHandler : function(type, data){
-
+		var elem = this[0];
+		if(elem){
+			return jQuery.event.trigger(type, data, elem, true);
+		}
 	}
 });
-
-
-
-
-
-
-
-// function setGlobalEval( elems, refElements ) {
-// 	var l = elems.length,
-// 		i = 0;
-
-// 	for ( ; i < l; i++ ) {
-// 		data_priv.set(
-// 			elems[ i ], "globalEval", !refElements || data_priv.get( refElements[ i ], "globalEval" )
-// 		);
-// 	}
-// }
-
-// function getAll( context, tag ) {
-// 	var ret = context.getElementsByTagName ? context.getElementsByTagName( tag || "*" ) :
-// 			context.querySelectorAll ? context.querySelectorAll( tag || "*" ) :
-// 			[];
-
-// 	return tag === undefined || tag && jQuery.nodeName( context, tag ) ?
-// 		jQuery.merge( [ context ], ret ) :
-// 		ret;
-// }
 
 var isSimple = /^.[^:#\[\.,]*$/,
 	rparentsprev = /^(?:parents|prev(?:Until|All))/,
@@ -2087,11 +2439,28 @@ jQuery.fn.extend({ //?#?
 	}
 });
 
+function sibling(cur, dir){
 
+}
 
+jQuery.each({
+	parent: function(elem){
+		var parent = elem.parentNode;
+		return parent && parent.nodeType !== 11 ? parent : null;
+	},
+})
 
-
-
+jQuery.extend({
+	filter: function(expr, elems, not){
+		
+	},
+	dir: function(elem, dir, until){//参数:操作的元素,查找类型方向,截止位置
+		
+	},
+	sibling: function(n, elem){
+		
+	}
+});
 
 
 
