@@ -2566,8 +2566,25 @@ function showHide(elements, show){ // ?#?
 			continue;
 		}
 
+		values[index] = data_priv.get(elem, "olddisplay");
+		display = elem.style.display;
+		if(show){
+			if(!values[index] && display === "none"){
+				elem.style.display = "";
+			}
 
+			if(elem.style.display === "" && isHidden(elem)){
+				values[index] = data_priv.access(elem, "olddisplay", css_defaultDisplay(elem.nodeName));
+			}
+		}else{
+			if(!values[index]){
+				hidden = isHidden( elem );
 
+				if(display && display !== "none" || !hidden){
+					data_priv.set(elem, "olddisplay", hidden ? display : jQuery.css(elem, "display"));
+				}
+			}
+		}
 	}
 
 
@@ -2589,13 +2606,23 @@ jQuery.fn.extend({
 		}, name, value, arguments.length > 1);
 	},
 	show: function(){
-		return 
+		return showHide(this, true);
 	},
 	hide: function(){
-
+		return showHide(this);
 	},
 	toggle: function(state){
+		if(typeof state === "boolean"){
+			return state ? this.show() : this.hide();
+		}
 
+		return this.each(function(){
+			if(isHidden(this)){
+				jQuery(this).show();
+			}else{
+				jQuery(this).hide();
+			}
+		})
 	}
 });
 
